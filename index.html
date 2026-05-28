@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>My Resources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --card: #FFFFFF;
+    --text: #1C1917;
+    --muted: #78716C;
+    --border: #E7E5E0;
+    --accent: #2D6A4F;
+    --accent-light: #D8EDDF;
+    --accent-text: #1B4332;
+    --danger: #C0392B;
+    --danger-light: #FDECEA;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 100px;
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 {
+    font-family: 'Lora', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .cat-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 14px 20px;
+    scrollbar-width: none;
+    background: var(--bg);
+    position: sticky;
+    top: 73px;
+    z-index: 9;
+  }
+  .cat-scroll::-webkit-scrollbar { display: none; }
+  .cat-pill {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cat-pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .content { padding: 0 16px; }
+  .section-title {
+    font-family: 'Lora', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 20px 0 10px 4px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: transform 0.1s;
+  }
+  .card:active { transform: scale(0.985); }
+  .card-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 14px 14px 16px;
+  }
+  .type-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .icon-web { background: #EEF2FF; }
+  .icon-yt { background: #FEE2E2; }
+  .icon-pdf { background: #FEF3C7; }
+  .icon-note { background: #F0FDF4; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-url {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-note {
+    font-size: 13px;
+    color: #57534E;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--accent-light);
+    color: var(--accent-text);
+  }
+  .date-label {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .card-actions {
+    display: flex;
+    border-top: 1px solid var(--border);
+  }
+  .action-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .action-btn:active { background: var(--accent-light); }
+  .action-btn.danger { color: var(--danger); }
+  .action-btn.danger:active { background: var(--danger-light); }
+  .action-sep {
+    width: 1px;
+    background: var(--border);
+  }
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 20px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 28px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(45,106,79,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.92); }
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 30;
+    align-items: flex-end;
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    background: var(--card);
+    border-radius: 22px 22px 0 0;
+    width: 100%;
+    padding: 24px 20px 40px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .sheet h2 {
+    font-family: 'Lora', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus { border-color: var(--accent); }
+  .form-group textarea { resize: none; height: 80px; }
+  .type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .type-opt {
+    padding: 12px 10px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .type-opt.selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent-text);
+  }
+  .save-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s;
+  }
+  .save-btn:active { opacity: 0.85; }
+  .cancel-btn {
+    width: 100%;
+    padding: 13px;
+    background: none;
+    color: var(--muted);
+    border: none;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--muted);
+  }
+  .empty-state .big { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; line-height: 1.6; }
+  .search-wrap {
+    padding: 0 16px 12px;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 11px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .cat-manage {
+    padding: 6px 20px 0;
+    text-align: right;
+  }
+  .cat-manage button {
+    font-size: 12px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+  }
+  .new-cat-row {
+    display: flex;
+    gap: 8px;
+    padding: 8px 20px 0;
+  }
+  .new-cat-row input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+  }
+  .new-cat-row input:focus { border-color: var(--accent); }
+  .new-cat-row button {
+    padding: 8px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📚 My Resources</h1>
+  <p>Your personal daily links & notes</p>
+</header>
+
+<div class="cat-scroll" id="catScroll">
+  <div class="cat-pill active" data-cat="all" onclick="filterCat('all')">All</div>
+</div>
+
+<div class="cat-manage">
+  <button onclick="toggleNewCat()">+ New category</button>
+</div>
+<div class="new-cat-row hidden" id="newCatRow">
+  <input type="text" id="newCatInput" placeholder="Category name…" maxlength="30">
+  <button onclick="addCategory()">Add</button>
+</div>
+
+<div class="search-wrap" style="margin-top:10px">
+  <input type="text" id="searchInput" placeholder="🔍  Search resources…" oninput="renderList()">
+</div>
+
+<div class="content" id="listContent"></div>
+
+<button class="fab" onclick="openSheet()" title="Add resource">+</button>
+
+<div class="overlay" id="overlay" onclick="closeSheetOutside(event)">
+  <div class="sheet" id="sheet">
+    <h2 id="sheetTitle">Add Resource</h2>
+
+    <div class="form-group">
+      <label>Type</label>
+      <div class="type-grid">
+        <div class="type-opt selected" data-type="web" onclick="selectType('web')">🌐 Website</div>
+        <div class="type-opt" data-type="yt" onclick="selectType('yt')">▶️ YouTube</div>
+        <div class="type-opt" data-type="pdf" onclick="selectType('pdf')">📄 Book / PDF</div>
+        <div class="type-opt" data-type="note" onclick="selectType('note')">📝 Note</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Title <span style="color:#C0392B">*</span></label>
+      <input type="text" id="fTitle" placeholder="e.g. CSS Grid Guide">
+    </div>
+
+    <div class="form-group" id="urlGroup">
+      <label>Link (URL)</label>
+      <input type="url" id="fUrl" placeholder="https://…">
+    </div>
+
+    <div class="form-group">
+      <label>Category</label>
+      <select id="fCat"></select>
+    </div>
+
+    <div class="form-group">
+      <label>Note (optional)</label>
+      <textarea id="fNote" placeholder="Why did I save this?"></textarea>
+    </div>
+
+    <button class="save-btn" onclick="saveResource()">Save</button>
+    <button class="cancel-btn" onclick="closeSheet()">Cancel</button>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'my_resources_v1';
+const CAT_KEY = 'my_categories_v1';
+
+let resources = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+let categories = JSON.parse(localStorage.getItem(CAT_KEY) || '["General","Work","Learning","Reading"]');
+let activeCat = 'all';
+let editId = null;
+let selectedType = 'web';
+
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(resources));
+  localStorage.setItem(CAT_KEY, JSON.stringify(categories));
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function typeIcon(t) {
+  return { web: '🌐', yt: '▶️', pdf: '📄', note: '📝' }[t] || '🔗';
+}
+function typeClass(t) {
+  return { web: 'icon-web', yt: 'icon-yt', pdf: 'icon-pdf', note: 'icon-note' }[t] || 'icon-web';
+}
+function typeName(t) {
+  return { web: 'Website', yt: 'YouTube', pdf: 'Book/PDF', note: 'Note' }[t] || t;
+}
+
+function renderCatPills() {
+  const scroll = document.getElementById('catScroll');
+  scroll.innerHTML = `<div class="cat-pill ${activeCat==='all'?'active':''}" data-cat="all" onclick="filterCat('all')">All</div>`;
+  categories.forEach(c => {
+    scroll.innerHTML += `<div class="cat-pill ${activeCat===c?'active':''}" data-cat="${c}" onclick="filterCat('${c}')">${c}</div>`;
+  });
+}
+
+function filterCat(cat) {
+  activeCat = cat;
+  renderCatPills();
+  renderList();
+}
+
+function renderList() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let list = resources;
+  if (activeCat !== 'all') list = list.filter(r => r.cat === activeCat);
+  if (q) list = list.filter(r =>
+    r.title.toLowerCase().includes(q) ||
+    (r.url||'').toLowerCase().includes(q) ||
+    (r.note||'').toLowerCase().includes(q) ||
+    (r.cat||'').toLowerCase().includes(q)
+  );
+
+  const el = document.getElementById('listContent');
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="big">📭</div><p>No resources yet.<br>Tap <strong>+</strong> to add your first one.</p></div>`;
+    return;
+  }
+
+  const byCat = {};
+  list.forEach(r => {
+    const c = r.cat || 'General';
+    if (!byCat[c]) byCat[c] = [];
+    byCat[c].push(r);
+  });
+
+  let html = '';
+  Object.keys(byCat).forEach(cat => {
+    if (activeCat === 'all') html += `<div class="section-title">${cat}</div>`;
+    byCat[cat].forEach(r => {
+      const domain = r.url ? tryDomain(r.url) : '';
+      const d = new Date(r.ts).toLocaleDateString('en-GB', {day:'numeric',month:'short'});
+      html += `
+        <div class="card">
+          <div class="card-inner">
+            <div class="type-icon ${typeClass(r.type)}">${typeIcon(r.type)}</div>
+            <div class="card-body">
+              <div class="card-title">${esc(r.title)}</div>
+              ${domain ? `<div class="card-url">${esc(domain)}</div>` : ''}
+              ${r.note ? `<div class="card-note">${esc(r.note)}</div>` : ''}
+              <div class="card-meta">
+                <span class="tag">${esc(r.cat||'General')}</span>
+                <span class="date-label">${d}</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-actions">
+            ${r.url ? `<button class="action-btn" onclick="openLink('${esc(r.url)}')">Open ↗</button><div class="action-sep"></div>` : ''}
+            <button class="action-btn" onclick="editResource('${r.id}')">Edit</button>
+            <div class="action-sep"></div>
+            <button class="action-btn danger" onclick="deleteResource('${r.id}')">Delete</button>
+          </div>
+        </div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
+function tryDomain(url) {
+  try { return new URL(url).hostname.replace('www.',''); } catch { return url.slice(0,40); }
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function openLink(url) {
+  window.open(url, '_blank');
+}
+
+function openSheet() {
+  editId = null;
+  selectedType = 'web';
+  document.getElementById('sheetTitle').textContent = 'Add Resource';
+  document.getElementById('fTitle').value = '';
+  document.getElementById('fUrl').value = '';
+  document.getElementById('fNote').value = '';
+  renderTypeOpts();
+  renderCatSelect();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('open');
+}
+function closeSheetOutside(e) {
+  if (e.target === document.getElementById('overlay')) closeSheet();
+}
+
+function selectType(t) {
+  selectedType = t;
+  renderTypeOpts();
+  document.getElementById('urlGroup').style.display = t === 'note' ? 'none' : 'block';
+}
+function renderTypeOpts() {
+  document.querySelectorAll('.type-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.type === selectedType);
+  });
+  document.getElementById('urlGroup').style.display = selectedType === 'note' ? 'none' : 'block';
+}
+
+function renderCatSelect() {
+  const sel = document.getElementById('fCat');
+  sel.innerHTML = categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if (activeCat !== 'all') sel.value = activeCat;
+}
+
+function saveResource() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { document.getElementById('fTitle').focus(); return; }
+  const url = document.getElementById('fUrl').value.trim();
+  const cat = document.getElementById('fCat').value;
+  const note = document.getElementById('fNote').value.trim();
+
+  if (editId) {
+    const idx = resources.findIndex(r => r.id === editId);
+    if (idx > -1) {
+      resources[idx] = { ...resources[idx], title, url, cat, note, type: selectedType };
+    }
+  } else {
+    resources.unshift({ id: uid(), title, url, cat, note, type: selectedType, ts: Date.now() });
+  }
+  save();
+  closeSheet();
+  renderList();
+}
+
+function editResource(id) {
+  const r = resources.find(x => x.id === id);
+  if (!r) return;
+  editId = id;
+  selectedType = r.type || 'web';
+  document.getElementById('sheetTitle').textContent = 'Edit Resource';
+  document.getElementById('fTitle').value = r.title;
+  document.getElementById('fUrl').value = r.url || '';
+  document.getElementById('fNote').value = r.note || '';
+  renderTypeOpts();
+  renderCatSelect();
+  document.getElementById('fCat').value = r.cat;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function deleteResource(id) {
+  if (!confirm('Delete this resource?')) return;
+  resources = resources.filter(r => r.id !== id);
+  save();
+  renderList();
+}
+
+function toggleNewCat() {
+  const row = document.getElementById('newCatRow');
+  row.classList.toggle('hidden');
+  if (!row.classList.contains('hidden')) document.getElementById('newCatInput').focus();
+}
+function addCategory() {
+  const val = document.getElementById('newCatInput').value.trim();
+  if (!val || categories.includes(val)) return;
+  categories.push(val);
+  save();
+  document.getElementById('newCatInput').value = '';
+  document.getElementById('newCatRow').classList.add('hidden');
+  renderCatPills();
+}
+document.getElementById('newCatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCategory();
+});
+
+renderCatPills();
+renderList();
+</script>
+</body>
+</html>
