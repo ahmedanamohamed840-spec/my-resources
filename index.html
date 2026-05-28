@@ -1,3 +1,7 @@
+
+bash
+
+cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,443 +10,985 @@
 <title>My Resources</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:#F7F5F0;--card:#FFFFFF;--text:#1C1917;--muted:#78716C;
-    --border:#E7E5E0;--accent:#2D6A4F;--accent-light:#D8EDDF;
-    --accent-text:#1B4332;--danger:#C0392B;--danger-light:#FDECEA;--radius:14px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px}
+:root{--bg:#F7F5F0;--card:#fff;--text:#1C1917;--muted:#78716C;--border:#E7E5E0;--accent:#2D6A4F;--al:#D8EDDF;--at:#1B4332;--danger:#C0392B;--dl:#FDECEA;--r:14px;--li:#0A66C2;--ll:#E8F0FB}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:120px}
 
-  /* LOGIN SCREEN */
-  #loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 24px;text-align:center}
-  #loginScreen h1{font-family:'Lora',serif;font-size:28px;font-weight:600;margin-bottom:8px}
-  #loginScreen p{font-size:15px;color:var(--muted);margin-bottom:40px;line-height:1.6}
-  .google-btn{display:flex;align-items:center;gap:12px;padding:14px 28px;background:white;border:1.5px solid var(--border);border-radius:12px;font-size:16px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-  .google-btn:active{transform:scale(0.97)}
-  .google-btn img{width:22px;height:22px}
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100;transition:opacity .3s}
+#loginScreen.hide{opacity:0;pointer-events:none}
+.login-box{text-align:center;padding:0 32px}
+.login-box .icon{font-size:44px;margin-bottom:12px}
+.login-box h1{font-family:'Lora',serif;font-size:24px;font-weight:600;margin-bottom:6px}
+.login-box p{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.google-btn{display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:var(--card);border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:transform .1s;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.google-btn:active{transform:scale(.97)}
+.google-btn img{width:20px;height:20px}
 
-  /* SYNC STATUS */
-  #syncBar{background:var(--card);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted)}
-  #syncBar button{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
-  .sync-dot{width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;margin-right:6px}
-  .sync-dot.ok{background:#2D6A4F}
-  .sync-dot.saving{background:#F59E0B;animation:pulse 1s infinite}
-  .sync-dot.error{background:#C0392B}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+/* SYNC BAR */
+#syncBar{background:var(--card);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted)}
+#syncBar button{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
+.sdot{width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;margin-right:5px}
+.sdot.ok{background:#2D6A4F}.sdot.saving{background:#F59E0B;animation:pulse 1s infinite}.sdot.error{background:#C0392B}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-  header{background:var(--card);border-bottom:1px solid var(--border);padding:20px 20px 16px;position:sticky;top:0;z-index:10}
-  header h1{font-family:'Lora',serif;font-size:22px;font-weight:600;letter-spacing:-0.3px}
-  header p{font-size:13px;color:var(--muted);margin-top:2px}
-  .cat-scroll{display:flex;gap:8px;overflow-x:auto;padding:14px 20px;scrollbar-width:none;background:var(--bg);position:sticky;top:73px;z-index:9}
-  .cat-scroll::-webkit-scrollbar{display:none}
-  .cat-pill{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;border:1.5px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all 0.15s}
-  .cat-pill.active{background:var(--accent);border-color:var(--accent);color:white}
-  .content{padding:0 16px}
-  .section-title{font-family:'Lora',serif;font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 10px 4px}
-  .card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;transition:transform 0.1s}
-  .card:active{transform:scale(0.985)}
-  .card-inner{display:flex;align-items:flex-start;gap:12px;padding:14px 14px 14px 16px}
-  .type-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;margin-top:1px}
-  .icon-web{background:#EEF2FF}.icon-yt{background:#FEE2E2}.icon-pdf{background:#FEF3C7}.icon-note{background:#F0FDF4}
-  .card-body{flex:1;min-width:0}
-  .card-title{font-size:15px;font-weight:500;color:var(--text);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .card-url{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .card-note{font-size:13px;color:#57534E;margin-top:4px;line-height:1.5}
-  .card-meta{display:flex;align-items:center;gap:8px;margin-top:6px}
-  .tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;background:var(--accent-light);color:var(--accent-text)}
-  .date-label{font-size:11px;color:var(--muted)}
-  .card-actions{display:flex;border-top:1px solid var(--border)}
-  .action-btn{flex:1;padding:10px;font-size:13px;font-weight:500;color:var(--accent);background:none;border:none;cursor:pointer;transition:background 0.1s}
-  .action-btn:active{background:var(--accent-light)}
-  .action-btn.danger{color:var(--danger)}
-  .action-btn.danger:active{background:var(--danger-light)}
-  .action-sep{width:1px;background:var(--border)}
-  .fab{position:fixed;bottom:28px;right:20px;width:58px;height:58px;border-radius:50%;background:var(--accent);color:white;font-size:28px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(45,106,79,0.4);display:flex;align-items:center;justify-content:center;z-index:20;transition:transform 0.15s}
-  .fab:active{transform:scale(0.92)}
-  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:30;align-items:flex-end}
-  .overlay.open{display:flex}
-  .sheet{background:var(--card);border-radius:22px 22px 0 0;width:100%;padding:24px 20px 40px;max-height:90vh;overflow-y:auto}
-  .sheet h2{font-family:'Lora',serif;font-size:19px;font-weight:600;margin-bottom:20px}
-  .form-group{margin-bottom:16px}
-  .form-group label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px}
-  .form-group input,.form-group textarea,.form-group select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s}
-  .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
-  .form-group textarea{resize:none;height:80px}
-  .type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .type-opt{padding:12px 10px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.15s}
-  .type-opt.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent-text)}
-  .save-btn{width:100%;padding:15px;background:var(--accent);color:white;border:none;border-radius:12px;font-size:16px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:8px;transition:opacity 0.15s}
-  .save-btn:active{opacity:0.85}
-  .cancel-btn{width:100%;padding:13px;background:none;color:var(--muted);border:none;font-size:15px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:6px}
-  .empty-state{text-align:center;padding:50px 20px;color:var(--muted)}
-  .empty-state .big{font-size:40px;margin-bottom:12px}
-  .empty-state p{font-size:15px;line-height:1.6}
-  .search-wrap{padding:0 16px 12px}
-  .search-wrap input{width:100%;padding:11px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none}
-  .search-wrap input:focus{border-color:var(--accent)}
-  .cat-manage{padding:6px 20px 0;text-align:right}
-  .cat-manage button{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
-  .new-cat-row{display:flex;gap:8px;padding:8px 20px 0}
-  .new-cat-row input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none}
-  .new-cat-row input:focus{border-color:var(--accent)}
-  .new-cat-row button{padding:8px 16px;background:var(--accent);color:white;border:none;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer}
-  .hidden{display:none}
-  .loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px}
-  .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
-  @keyframes spin{to{transform:rotate(360deg)}}
+/* TOP NAV */
+header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px 0;position:sticky;top:0;z-index:10}
+header h1{font-family:'Lora',serif;font-size:20px;font-weight:600}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nav-tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{flex-shrink:0;padding:8px 14px;font-size:13px;font-weight:500;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:color .15s}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* CAT PILLS */
+.cat-scroll{display:flex;gap:7px;overflow-x:auto;padding:10px 16px;scrollbar-width:none;background:var(--bg)}
+.cat-scroll::-webkit-scrollbar{display:none}
+.cat-pill{flex-shrink:0;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.cat-pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* STATUS FILTER */
+.status-bar{display:flex;gap:6px;padding:6px 16px;overflow-x:auto;scrollbar-width:none}
+.status-bar::-webkit-scrollbar{display:none}
+.status-pill{flex-shrink:0;padding:4px 12px;border-radius:16px;font-size:12px;font-weight:500;border:1.5px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s}
+.status-pill.active{background:var(--text);border-color:var(--text);color:#fff}
+.status-pill.s-future.active{background:#6366F1;border-color:#6366F1;color:#fff}
+.status-pill.s-progress.active{background:#F59E0B;border-color:#F59E0B;color:#fff}
+.status-pill.s-done.active{background:#2D6A4F;border-color:#2D6A4F;color:#fff}
+
+/* MANAGE BAR */
+.manage-bar{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 2px}
+.manage-bar button{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
+.new-row{display:flex;gap:8px;padding:6px 16px 0}
+.new-row input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none}
+.new-row input:focus{border-color:var(--accent)}
+.new-row button{padding:8px 13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
+
+/* SEARCH */
+.search-wrap{padding:6px 16px 4px}
+.search-wrap input{width:100%;padding:9px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none}
+.search-wrap input:focus{border-color:var(--accent)}
+
+.content{padding:0 14px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:16px 2px 7px}
+.section-title{font-family:'Lora',serif;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+.sub-section{margin-left:10px;border-left:2px solid var(--al);padding-left:10px;margin-bottom:4px}
+.sub-title{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 5px}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;overflow:hidden;transition:transform .1s}
+.card:active{transform:scale(.985)}
+.card-inner{display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 13px}
+.type-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:1px}
+.icon-web{background:#EEF2FF}.icon-yt{background:#FEE2E2}.icon-pdf{background:#FEF3C7}.icon-note{background:#F0FDF4}.icon-li{background:var(--ll)}.icon-todo{background:#F5F3FF}
+.card-body{flex:1;min-width:0}
+.card-title{font-size:14px;font-weight:500;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-url{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-note{font-size:12px;color:#57534E;margin-top:3px;line-height:1.5}
+.card-content{font-size:12px;color:#44403C;margin-top:5px;line-height:1.6;background:var(--bg);padding:8px 10px;border-radius:8px;max-height:120px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+.card-meta{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:500;padding:2px 7px;border-radius:5px;background:var(--al);color:var(--at)}
+.subtag{font-size:11px;font-weight:500;padding:2px 7px;border-radius:5px;background:#EEF2FF;color:#3730A3}
+.date-label{font-size:11px;color:var(--muted)}
+.status-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.4px}
+.sb-future{background:#EEF2FF;color:#6366F1}
+.sb-progress{background:#FEF3C7;color:#B45309}
+.sb-done{background:var(--al);color:var(--at)}
+
+.card-actions{display:flex;border-top:1px solid var(--border)}
+.action-btn{flex:1;padding:9px;font-size:12px;font-weight:500;color:var(--accent);background:none;border:none;cursor:pointer;transition:background .1s;font-family:'DM Sans',sans-serif}
+.action-btn:active{background:var(--al)}
+.action-btn.danger{color:var(--danger)}
+.action-btn.danger:active{background:var(--dl)}
+.action-btn.li-btn{color:var(--li)}
+.action-sep{width:1px;background:var(--border)}
+
+/* NOTE EXTRAS */
+.note-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.note-tag-chip{font-size:11px;padding:2px 8px;border-radius:10px;background:#F5F3FF;color:#6D28D9;font-weight:500}
+.note-checklist{list-style:none;margin-top:6px}
+.note-checklist li{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text);margin-bottom:4px}
+.note-checklist input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+.note-checklist li.checked span{text-decoration:line-through;color:var(--muted)}
+.note-color-bar{height:4px;border-radius:0 0 0 0;margin-bottom:0}
+
+/* FAB */
+.fab{position:fixed;bottom:26px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;font-size:26px;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(45,106,79,.4);display:flex;align-items:center;justify-content:center;z-index:20;transition:transform .15s}
+.fab:active{transform:scale(.92)}
+
+/* OVERLAYS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;align-items:flex-end}
+.overlay.open{display:flex}
+.sheet{background:var(--card);border-radius:22px 22px 0 0;width:100%;padding:20px 18px 36px;max-height:93vh;overflow-y:auto}
+.sheet h2{font-family:'Lora',serif;font-size:18px;font-weight:600;margin-bottom:16px}
+.fg{margin-bottom:13px}
+.fg label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
+.fg input,.fg textarea,.fg select{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s}
+.fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--accent)}
+.fg textarea{resize:none;height:80px}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.type-opt{padding:10px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.type-opt.selected{border-color:var(--accent);background:var(--al);color:var(--at)}
+.save-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:6px}
+.save-btn:active{opacity:.85}
+.cancel-btn{width:100%;padding:11px;background:none;color:var(--muted);border:none;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:4px}
+.section-divider{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* NOTE EXTRAS IN FORM */
+.checklist-items{list-style:none;margin-bottom:6px}
+.checklist-items li{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.checklist-items li input[type=text]{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--card);outline:none}
+.checklist-items li input[type=text]:focus{border-color:var(--accent)}
+.checklist-items li button{padding:5px 9px;background:var(--dl);color:var(--danger);border:none;border-radius:6px;cursor:pointer;font-size:13px}
+.add-check-btn{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
+.color-opts{display:flex;gap:8px;margin-top:4px}
+.color-opt{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s}
+.color-opt.selected{border-color:var(--text);transform:scale(1.2)}
+.tags-input-wrap{display:flex;gap:6px}
+.tags-input-wrap input{flex:1}
+.tags-input-wrap button{padding:9px 12px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:13px;cursor:pointer}
+.tag-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.tag-chip{font-size:12px;padding:3px 9px;border-radius:10px;background:#F5F3FF;color:#6D28D9;cursor:pointer;display:flex;align-items:center;gap:4px}
+.tag-chip span{font-size:10px;color:#9CA3AF}
+
+/* PDF UPLOAD */
+.pdf-tabs{display:flex;gap:0;margin-bottom:10px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden}
+.pdf-tab{flex:1;padding:9px;font-size:13px;font-weight:500;text-align:center;cursor:pointer;background:var(--bg);color:var(--muted);border:none;font-family:'DM Sans',sans-serif;transition:all .15s}
+.pdf-tab.active{background:var(--accent);color:#fff}
+.upload-area{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s}
+.upload-area:hover{border-color:var(--accent)}
+.upload-area p{font-size:13px;color:var(--muted);margin-top:6px}
+.upload-area input[type=file]{display:none}
+.file-chosen{font-size:12px;color:var(--accent);margin-top:6px;font-weight:500}
+
+/* CAT MANAGER */
+.cat-manager{background:var(--card);border-radius:22px 22px 0 0;width:100%;padding:20px 18px 36px;max-height:88vh;overflow-y:auto}
+.cat-manager h2{font-family:'Lora',serif;font-size:18px;font-weight:600;margin-bottom:14px}
+.cat-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;overflow:hidden}
+.cat-item-row{display:flex;align-items:center}
+.drag-handle{padding:10px 8px;color:var(--muted);font-size:16px;cursor:grab;touch-action:none}
+.drag-handle:active{cursor:grabbing}
+.cat-item-name{flex:1;padding:10px 6px;font-size:14px;font-weight:500}
+.cat-item-del{padding:10px 13px;color:var(--danger);background:none;border:none;cursor:pointer;font-size:16px;border-left:1px solid var(--border)}
+.sub-list{margin:0 10px 8px 36px}
+.sub-item{display:flex;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:4px}
+.sub-drag{padding:7px 6px;color:var(--muted);font-size:14px;cursor:grab;touch-action:none}
+.sub-item-name{flex:1;padding:7px 8px;font-size:13px;color:#3730A3}
+.sub-item-del{padding:7px 11px;color:var(--danger);background:none;border:none;cursor:pointer;font-size:14px;border-left:1px solid var(--border)}
+.add-sub-row{display:flex;gap:6px;margin:0 10px 10px 36px}
+.add-sub-row input{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none}
+.add-sub-row input:focus{border-color:var(--accent)}
+.add-sub-row button{padding:7px 11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.done-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:10px}
+.drag-over{opacity:.5;border:2px dashed var(--accent) !important}
+
+/* TO-DO */
+.todo-section{padding:0 14px}
+.todo-date-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0 8px}
+.todo-date{font-family:'Lora',serif;font-size:16px;font-weight:600}
+.todo-stats{font-size:12px;color:var(--muted)}
+.todo-add-row{display:flex;gap:8px;margin-bottom:12px}
+.todo-add-row input{flex:1;padding:10px 13px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none}
+.todo-add-row input:focus{border-color:var(--accent)}
+.todo-add-row button{padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:20px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.todo-item{display:flex;align-items:flex-start;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:7px}
+.todo-item.done-item{opacity:.7}
+.todo-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);background:var(--bg);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s}
+.todo-check.checked{background:var(--accent);border-color:var(--accent);color:#fff;font-size:12px}
+.todo-body{flex:1;min-width:0}
+.todo-text{font-size:14px;line-height:1.4;word-break:break-word}
+.todo-text.striked{text-decoration:line-through;color:var(--muted)}
+.todo-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.todo-del{padding:4px 8px;color:var(--muted);background:none;border:none;cursor:pointer;font-size:16px;flex-shrink:0}
+.todo-del:active{color:var(--danger)}
+.todo-filter-bar{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none}
+.todo-filter-bar::-webkit-scrollbar{display:none}
+.tf-pill{flex-shrink:0;padding:4px 12px;border-radius:16px;font-size:12px;font-weight:500;border:1.5px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s}
+.tf-pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* TRACKER */
+.tracker-section{padding:0 14px}
+.tracker-date-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.tracker-date-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.tracker-date-title{font-weight:600;font-size:14px}
+.tracker-date-stat{font-size:12px;color:var(--muted)}
+.tracker-items{margin-top:10px;display:none}
+.tracker-items.open{display:block}
+.tracker-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.tracker-item:last-child{border-bottom:none}
+.tracker-item .tcheck{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.tcheck.done{background:var(--accent);border-color:var(--accent);color:#fff}
+.tcheck.notdone{background:var(--dl);border-color:var(--danger);color:var(--danger)}
+.tracker-empty{text-align:center;padding:30px;color:var(--muted);font-size:14px}
+
+/* MISC */
+.empty-state{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty-state .big{font-size:38px;margin-bottom:10px}
+.empty-state p{font-size:14px;line-height:1.6}
+.loading{text-align:center;padding:50px 20px;color:var(--muted);font-size:14px}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none}
+.li-extracting{font-size:12px;color:var(--li);margin-top:4px;font-style:italic}
 </style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
+<!-- LOGIN -->
 <div id="loginScreen">
-  <div style="font-size:52px;margin-bottom:16px">📚</div>
-  <h1>My Resources</h1>
-  <p>Your personal links, videos, books<br>and notes — synced on all devices</p>
-  <button class="google-btn" onclick="signIn()">
-    <img src="https://www.google.com/favicon.ico" alt="Google">
-    Sign in with Google
-  </button>
+  <div class="login-box">
+    <div class="icon">📚</div>
+    <h1>My Resources</h1>
+    <p>Your personal links, videos,<br>books and notes — synced everywhere</p>
+    <button class="google-btn" onclick="signIn()">
+      <img src="https://www.google.com/favicon.ico" alt="">Sign in with Google
+    </button>
+  </div>
 </div>
 
-<!-- MAIN APP (hidden until signed in) -->
+<!-- APP -->
 <div id="app" class="hidden">
   <div id="syncBar">
-    <span><span class="sync-dot" id="syncDot"></span><span id="syncText">Connecting…</span></span>
+    <span><span class="sdot" id="sdot"></span><span id="stext">Connecting…</span></span>
     <button onclick="signOut()">Sign out</button>
   </div>
-
   <header>
-    <h1>📚 My Resources</h1>
-    <p id="userEmail" style="font-size:13px;color:var(--muted);margin-top:2px"></p>
+    <div class="hdr-row">
+      <h1>📚 My Resources</h1>
+      <span id="userEmail" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('resources')">Resources</button>
+      <button class="nav-tab" onclick="switchTab('todo')">To-Do</button>
+      <button class="nav-tab" onclick="switchTab('tracker')">Tracker</button>
+    </div>
   </header>
 
-  <div class="cat-scroll" id="catScroll"></div>
-
-  <div class="cat-manage">
-    <button onclick="toggleNewCat()">+ New category</button>
+  <!-- RESOURCES TAB -->
+  <div id="tab-resources">
+    <div class="cat-scroll" id="catScroll"></div>
+    <div class="status-bar" id="statusBar"></div>
+    <div class="manage-bar">
+      <button onclick="openCatManager()">⚙ Manage categories</button>
+      <button onclick="openNewCat()">+ New category</button>
+    </div>
+    <div class="new-row hidden" id="newCatRow">
+      <input type="text" id="newCatInput" placeholder="Category name…" maxlength="30">
+      <button onclick="addCategory()">Add</button>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="🔍  Search resources…" oninput="renderList()">
+    </div>
+    <div class="content" id="listContent">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
   </div>
-  <div class="new-cat-row hidden" id="newCatRow">
-    <input type="text" id="newCatInput" placeholder="Category name…" maxlength="30">
-    <button onclick="addCategory()">Add</button>
+
+  <!-- TO-DO TAB -->
+  <div id="tab-todo" class="hidden">
+    <div class="todo-section">
+      <div class="todo-date-row">
+        <div class="todo-date" id="todoDateLabel"></div>
+        <div class="todo-stats" id="todoStats"></div>
+      </div>
+      <div class="todo-add-row">
+        <input type="text" id="todoInput" placeholder="Add a task for today…">
+        <button onclick="addTodo()">+</button>
+      </div>
+      <div class="todo-filter-bar">
+        <div class="tf-pill active" onclick="setTodoFilter('all')" id="tf-all">All</div>
+        <div class="tf-pill" onclick="setTodoFilter('done')" id="tf-done">Done ✓</div>
+        <div class="tf-pill" onclick="setTodoFilter('notdone')" id="tf-notdone">Not done</div>
+      </div>
+      <div id="todoList"></div>
+    </div>
   </div>
 
-  <div class="search-wrap" style="margin-top:10px">
-    <input type="text" id="searchInput" placeholder="🔍  Search resources…" oninput="renderList()">
+  <!-- TRACKER TAB -->
+  <div id="tab-tracker" class="hidden">
+    <div class="tracker-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px">
+        <div style="font-family:'Lora',serif;font-size:16px;font-weight:600">Daily Tracker</div>
+        <div style="font-size:12px;color:var(--muted)" id="trackerTotal"></div>
+      </div>
+      <div id="trackerList"></div>
+    </div>
   </div>
 
-  <div class="content" id="listContent">
-    <div class="loading"><div class="spinner"></div>Loading your resources…</div>
-  </div>
-
-  <button class="fab" onclick="openSheet()">+</button>
+  <button class="fab" id="mainFab" onclick="fabAction()">+</button>
 </div>
 
-<!-- ADD/EDIT SHEET -->
+<!-- ADD/EDIT RESOURCE OVERLAY -->
 <div class="overlay" id="overlay" onclick="closeSheetOutside(event)">
-  <div class="sheet" id="sheet">
+  <div class="sheet">
     <h2 id="sheetTitle">Add Resource</h2>
-    <div class="form-group">
+    <div class="fg">
       <label>Type</label>
       <div class="type-grid">
         <div class="type-opt selected" data-type="web" onclick="selectType('web')">🌐 Website</div>
         <div class="type-opt" data-type="yt" onclick="selectType('yt')">▶️ YouTube</div>
-        <div class="type-opt" data-type="pdf" onclick="selectType('pdf')">📄 Book / PDF</div>
+        <div class="type-opt" data-type="pdf" onclick="selectType('pdf')">📄 Book/PDF</div>
         <div class="type-opt" data-type="note" onclick="selectType('note')">📝 Note</div>
+        <div class="type-opt" data-type="li" onclick="selectType('li')">💼 LinkedIn</div>
       </div>
     </div>
-    <div class="form-group">
-      <label>Title *</label>
-      <input type="text" id="fTitle" placeholder="e.g. CSS Grid Guide">
+    <div class="fg"><label>Title *</label><input type="text" id="fTitle" placeholder="e.g. CSS Grid Guide"></div>
+
+    <!-- URL group (web/yt/li) -->
+    <div id="urlGroup" class="fg"><label>Link (URL)</label><input type="url" id="fUrl" placeholder="https://…"><div id="liExtractStatus" class="li-extracting hidden"></div></div>
+
+    <!-- PDF group -->
+    <div id="pdfGroup" class="fg hidden">
+      <label>PDF</label>
+      <div class="pdf-tabs">
+        <button class="pdf-tab active" onclick="switchPdfTab('link')">🔗 Link</button>
+        <button class="pdf-tab" onclick="switchPdfTab('upload')">📤 Upload</button>
+      </div>
+      <div id="pdfLinkDiv"><input type="url" id="fPdfUrl" placeholder="https://… (PDF link)"></div>
+      <div id="pdfUploadDiv" class="hidden">
+        <div class="upload-area" onclick="document.getElementById('pdfFileInput').click()">
+          <div style="font-size:32px">📄</div>
+          <p>Tap to choose a PDF file</p>
+          <input type="file" id="pdfFileInput" accept=".pdf" onchange="onPdfChosen(event)">
+          <div class="file-chosen hidden" id="fileChosenLabel"></div>
+        </div>
+      </div>
     </div>
-    <div class="form-group" id="urlGroup">
-      <label>Link (URL)</label>
-      <input type="url" id="fUrl" placeholder="https://…">
+
+    <!-- LinkedIn extracted content -->
+    <div id="liContentGroup" class="fg hidden">
+      <label>Extracted Content</label>
+      <textarea id="fLiContent" placeholder="Paste or edit the post content here…" style="height:100px"></textarea>
     </div>
-    <div class="form-group">
+
+    <!-- Note extras -->
+    <div id="noteExtras" class="hidden">
+      <div class="section-divider">Note Options</div>
+      <div class="fg">
+        <label>Color</label>
+        <div class="color-opts" id="colorOpts">
+          <div class="color-opt selected" data-color="" style="background:#F7F5F0;border:1.5px solid #ccc" onclick="selectColor('')"></div>
+          <div class="color-opt" data-color="#FEF3C7" style="background:#FEF3C7" onclick="selectColor('#FEF3C7')"></div>
+          <div class="color-opt" data-color="#EEF2FF" style="background:#EEF2FF" onclick="selectColor('#EEF2FF')"></div>
+          <div class="color-opt" data-color="#F0FDF4" style="background:#F0FDF4" onclick="selectColor('#F0FDF4')"></div>
+          <div class="color-opt" data-color="#FEE2E2" style="background:#FEE2E2" onclick="selectColor('#FEE2E2')"></div>
+          <div class="color-opt" data-color="#F5F3FF" style="background:#F5F3FF" onclick="selectColor('#F5F3FF')"></div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Tags</label>
+        <div class="tags-input-wrap">
+          <input type="text" id="fTagInput" placeholder="Add tag…" maxlength="20" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag()}">
+          <button onclick="addTag()">Add</button>
+        </div>
+        <div class="tag-chips" id="tagChips"></div>
+      </div>
+      <div class="fg">
+        <label>Checklist inside note</label>
+        <ul class="checklist-items" id="checklistItems"></ul>
+        <button class="add-check-btn" onclick="addChecklistItem()">+ Add checklist item</button>
+      </div>
+    </div>
+
+    <div class="fg">
       <label>Category</label>
-      <select id="fCat"></select>
+      <select id="fCat" onchange="renderSubSelect()"></select>
     </div>
-    <div class="form-group">
-      <label>Note (optional)</label>
-      <textarea id="fNote" placeholder="Why did I save this?"></textarea>
+    <div class="fg" id="subCatGroup">
+      <label>Sub-category <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <select id="fSubCat"></select>
     </div>
+    <div class="fg">
+      <label>Status</label>
+      <select id="fStatus">
+        <option value="future">🔵 Future</option>
+        <option value="progress">🟡 In Progress</option>
+        <option value="done">🟢 Done</option>
+      </select>
+    </div>
+    <div class="fg" id="noteGroup"><label>Note (optional)</label><textarea id="fNote" placeholder="Your notes…"></textarea></div>
     <button class="save-btn" onclick="saveResource()">Save</button>
     <button class="cancel-btn" onclick="closeSheet()">Cancel</button>
   </div>
 </div>
 
+<!-- CAT MANAGER OVERLAY -->
+<div class="overlay" id="catOverlay" onclick="closeCatOutside(event)">
+  <div class="cat-manager" id="catManagerPanel"></div>
+</div>
+
 <script>
-const CLIENT_ID = '715393916818-6m0f2fok67kbnj3fp7g4mi20161kh2bs.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
-const FILE_NAME = 'my-resources-data.json';
+const CLIENT_ID='715393916818-6m0f2fok67kbnj3fp7g4mi20161kh2bs.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/drive.appdata';
+const FILE_NAME='my-resources-data-v3.json';
 
-let tokenClient, accessToken = null;
-let resources = [], categories = ['General','Work','Learning','Reading'];
-let activeCat = 'all', editId = null, selectedType = 'web';
-let driveFileId = null, saveTimer = null;
+let tokenClient, accessToken=null;
+let resources=[], categories=[
+  {name:'General',subs:[]},{name:'Work',subs:[]},{name:'Learning',subs:[]},{name:'Reading',subs:[]}
+];
+let todos={}, tracker={};
+let activeCat='all', activeStatus='all', activeTodoFilter='all';
+let editId=null, selectedType='web', noteColor='', noteTags=[], noteChecklist=[];
+let pdfMode='link', pdfFileData=null;
+let driveFileId=null, saveTimer=null;
+let currentTab='resources';
+let today=todayKey();
 
-// ── GOOGLE IDENTITY ──────────────────────────────────────────────
-function loadGIS() {
-  return new Promise(resolve => {
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = resolve;
-    document.head.appendChild(s);
-  });
-}
-function loadGAPI() {
-  return new Promise(resolve => {
-    const s = document.createElement('script');
-    s.src = 'https://apis.google.com/js/api.js';
-    s.onload = () => gapi.load('client', resolve);
-    document.head.appendChild(s);
-  });
-}
+function todayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function formatDate(k){const p=k.split('-');return new Date(p[0],p[1]-1,p[2]).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
 
-async function init() {
-  await Promise.all([loadGIS(), loadGAPI()]);
-  await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: onToken
-  });
-  // Try silent restore
-  const saved = sessionStorage.getItem('gtoken');
-  if (saved) { accessToken = saved; gapi.client.setToken({ access_token: saved }); showApp(); }
+// ── GOOGLE AUTH ──────────────────────────────────
+function loadGIS(){return new Promise(r=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=r;document.head.appendChild(s)})}
+function loadGAPI(){return new Promise(r=>{const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';s.onload=()=>gapi.load('client',r);document.head.appendChild(s)})}
+async function init(){
+  await Promise.all([loadGIS(),loadGAPI()]);
+  await gapi.client.init({discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']});
+  tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:onToken});
+  const saved=sessionStorage.getItem('gtoken');
+  if(saved){accessToken=saved;gapi.client.setToken({access_token:saved});showApp();}
 }
+function signIn(){tokenClient.requestAccessToken({prompt:''})}
+function signOut(){google.accounts.oauth2.revoke(accessToken,()=>{});sessionStorage.removeItem('gtoken');location.reload()}
+function onToken(resp){if(resp.error)return;accessToken=resp.access_token;sessionStorage.setItem('gtoken',accessToken);gapi.client.setToken({access_token:accessToken});showApp()}
 
-function signIn() {
-  tokenClient.requestAccessToken({ prompt: '' });
-}
-function signOut() {
-  google.accounts.oauth2.revoke(accessToken, () => {});
-  sessionStorage.removeItem('gtoken');
-  accessToken = null;
-  location.reload();
-}
-function onToken(resp) {
-  if (resp.error) return;
-  accessToken = resp.access_token;
-  sessionStorage.setItem('gtoken', accessToken);
-  gapi.client.setToken({ access_token: accessToken });
-  showApp();
-}
-
-// ── APP SHOW ─────────────────────────────────────────────────────
-async function showApp() {
-  document.getElementById('loginScreen').classList.add('hidden');
+async function showApp(){
+  document.getElementById('loginScreen').classList.add('hide');
+  setTimeout(()=>document.getElementById('loginScreen').style.display='none',350);
   document.getElementById('app').classList.remove('hidden');
-  setSyncStatus('saving', 'Loading…');
-  try {
-    const info = await gapi.client.drive.about.get({ fields: 'user' });
-    document.getElementById('userEmail').textContent = info.result.user.emailAddress;
-  } catch(e) {}
+  setSyncStatus('saving','Loading…');
+  try{const info=await gapi.client.drive.about.get({fields:'user'});document.getElementById('userEmail').textContent=info.result.user.emailAddress}catch(e){}
   await loadFromDrive();
+  checkDayRollover();
 }
 
-// ── DRIVE FILE OPS ────────────────────────────────────────────────
-async function loadFromDrive() {
-  try {
-    const res = await gapi.client.drive.files.list({
-      spaces: 'appDataFolder',
-      fields: 'files(id,name)',
-      q: `name='${FILE_NAME}'`
-    });
-    const files = res.result.files;
-    if (files && files.length > 0) {
-      driveFileId = files[0].id;
-      const content = await gapi.client.drive.files.get({ fileId: driveFileId, alt: 'media' });
-      const data = typeof content.result === 'string' ? JSON.parse(content.result) : content.result;
-      resources = data.resources || [];
-      categories = data.categories || categories;
-    }
-    setSyncStatus('ok', 'Synced with Google Drive');
-  } catch(e) {
-    setSyncStatus('error', 'Could not load — working offline');
+function checkDayRollover(){
+  const newToday=todayKey();
+  if(newToday!==today){
+    // archive yesterday's todos
+    const yTodos=todos[today]||[];
+    if(yTodos.length>0) tracker[today]=yTodos.map(t=>({text:t.text,done:t.done}));
+    today=newToday;
+    scheduleSave();
   }
-  renderCatPills();
-  renderList();
+  document.getElementById('todoDateLabel').textContent=formatDate(today);
+  renderTodos();
+  renderTracker();
 }
 
-async function saveToDrive() {
-  setSyncStatus('saving', 'Saving…');
-  const body = JSON.stringify({ resources, categories });
-  try {
-    if (driveFileId) {
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body
-      });
-    } else {
-      const meta = await gapi.client.drive.files.create({
-        resource: { name: FILE_NAME, parents: ['appDataFolder'] },
-        fields: 'id'
-      });
-      driveFileId = meta.result.id;
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body
-      });
+// ── DRIVE ────────────────────────────────────────
+async function loadFromDrive(){
+  try{
+    const res=await gapi.client.drive.files.list({spaces:'appDataFolder',fields:'files(id,name)',q:`name='${FILE_NAME}'`});
+    const files=res.result.files;
+    if(files&&files.length>0){
+      driveFileId=files[0].id;
+      const content=await gapi.client.drive.files.get({fileId:driveFileId,alt:'media'});
+      const data=typeof content.result==='string'?JSON.parse(content.result):content.result;
+      resources=data.resources||[];
+      categories=(data.categories||[]).map(c=>typeof c==='string'?{name:c,subs:[]}:c);
+      todos=data.todos||{};
+      tracker=data.tracker||{};
     }
-    setSyncStatus('ok', 'Saved to Google Drive ✓');
-  } catch(e) {
-    setSyncStatus('error', 'Save failed — check connection');
-  }
+    setSyncStatus('ok','Synced ✓');
+  }catch(e){setSyncStatus('error','Could not load')}
+  renderCatPills();renderStatusBar();renderList();
+  renderTodos();renderTracker();
 }
-
-function scheduleSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveToDrive, 800);
+async function saveToDrive(){
+  setSyncStatus('saving','Saving…');
+  const body=JSON.stringify({resources,categories,todos,tracker});
+  try{
+    if(driveFileId){
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body});
+    }else{
+      const meta=await gapi.client.drive.files.create({resource:{name:FILE_NAME,parents:['appDataFolder']},fields:'id'});
+      driveFileId=meta.result.id;
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body});
+    }
+    setSyncStatus('ok','Saved ✓');
+  }catch(e){setSyncStatus('error','Save failed')}
 }
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveToDrive,800)}
+function setSyncStatus(state,text){document.getElementById('sdot').className='sdot '+state;document.getElementById('stext').textContent=text}
 
-function setSyncStatus(state, text) {
-  const dot = document.getElementById('syncDot');
-  dot.className = 'sync-dot ' + state;
-  document.getElementById('syncText').textContent = text;
-}
-
-// ── UI ────────────────────────────────────────────────────────────
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
-function typeIcon(t) { return {web:'🌐',yt:'▶️',pdf:'📄',note:'📝'}[t]||'🔗'; }
-function typeClass(t) { return {web:'icon-web',yt:'icon-yt',pdf:'icon-pdf',note:'icon-note'}[t]||'icon-web'; }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function tryDomain(url) { try { return new URL(url).hostname.replace('www.',''); } catch { return url.slice(0,40); } }
-
-function renderCatPills() {
-  const el = document.getElementById('catScroll');
-  el.innerHTML = `<div class="cat-pill ${activeCat==='all'?'active':''}" onclick="filterCat('all')">All</div>`;
-  categories.forEach(c => {
-    el.innerHTML += `<div class="cat-pill ${activeCat===c?'active':''}" onclick="filterCat('${esc(c)}')">${esc(c)}</div>`;
+// ── TABS ─────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;
+  ['resources','todo','tracker'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab);
   });
+  document.querySelectorAll('.nav-tab').forEach((el,i)=>{
+    el.classList.toggle('active',['resources','todo','tracker'][i]===tab);
+  });
+  if(tab==='todo'){renderTodos();}
+  if(tab==='tracker'){renderTracker();}
+}
+function fabAction(){
+  if(currentTab==='todo'){addTodoFromFab();}
+  else{openSheet();}
 }
 
-function filterCat(cat) { activeCat = cat; renderCatPills(); renderList(); }
+// ── HELPERS ──────────────────────────────────────
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function typeIcon(t){return{web:'🌐',yt:'▶️',pdf:'📄',note:'📝',li:'💼'}[t]||'🔗'}
+function typeClass(t){return{web:'icon-web',yt:'icon-yt',pdf:'icon-pdf',note:'icon-note',li:'icon-li'}[t]||'icon-web'}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function tryDomain(url){try{return new URL(url).hostname.replace('www.','')}catch{return url.slice(0,40)}}
+function getCatObj(name){return categories.find(c=>c.name===name)||{name,subs:[]}}
+function statusBadge(s){const m={future:'sb-future',progress:'sb-progress',done:'sb-done'};const l={future:'Future',progress:'In Progress',done:'Done'};return`<span class="status-badge ${m[s]||'sb-future'}">${l[s]||'Future'}</span>`}
 
-function renderList() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  let list = resources;
-  if (activeCat !== 'all') list = list.filter(r => r.cat === activeCat);
-  if (q) list = list.filter(r =>
-    r.title.toLowerCase().includes(q) ||
-    (r.url||'').toLowerCase().includes(q) ||
-    (r.note||'').toLowerCase().includes(q) ||
-    (r.cat||'').toLowerCase().includes(q)
-  );
-  const el = document.getElementById('listContent');
-  if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="big">📭</div><p>No resources yet.<br>Tap <strong>+</strong> to add your first one.</p></div>`;
-    return;
-  }
-  const byCat = {};
-  list.forEach(r => { const c = r.cat||'General'; if(!byCat[c]) byCat[c]=[]; byCat[c].push(r); });
-  let html = '';
-  Object.keys(byCat).forEach(cat => {
-    if (activeCat === 'all') html += `<div class="section-title">${esc(cat)}</div>`;
-    byCat[cat].forEach(r => {
-      const domain = r.url ? tryDomain(r.url) : '';
-      const d = new Date(r.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-      html += `<div class="card">
-        <div class="card-inner">
-          <div class="type-icon ${typeClass(r.type)}">${typeIcon(r.type)}</div>
-          <div class="card-body">
-            <div class="card-title">${esc(r.title)}</div>
-            ${domain?`<div class="card-url">${esc(domain)}</div>`:''}
-            ${r.note?`<div class="card-note">${esc(r.note)}</div>`:''}
-            <div class="card-meta">
-              <span class="tag">${esc(r.cat||'General')}</span>
-              <span class="date-label">${d}</span>
-            </div>
-          </div>
-        </div>
-        <div class="card-actions">
-          ${r.url?`<button class="action-btn" onclick="window.open('${esc(r.url)}','_blank')">Open ↗</button><div class="action-sep"></div>`:''}
-          <button class="action-btn" onclick="editResource('${r.id}')">Edit</button>
-          <div class="action-sep"></div>
-          <button class="action-btn danger" onclick="deleteResource('${r.id}')">Delete</button>
-        </div>
-      </div>`;
+// ── CAT PILLS ────────────────────────────────────
+function renderCatPills(){
+  const el=document.getElementById('catScroll');
+  let html=`<div class="cat-pill ${activeCat==='all'?'active':''}" onclick="filterCat('all')">All</div>`;
+  categories.forEach(c=>{html+=`<div class="cat-pill ${activeCat===c.name?'active':''}" onclick="filterCat('${esc(c.name)}')">${esc(c.name)}</div>`});
+  el.innerHTML=html;
+}
+function renderStatusBar(){
+  const el=document.getElementById('statusBar');
+  const statuses=[{k:'all',l:'All'},{k:'future',l:'🔵 Future'},{k:'progress',l:'🟡 Progress'},{k:'done',l:'🟢 Done'}];
+  el.innerHTML=statuses.map(s=>`<div class="status-pill ${activeStatus===s.k?'active':''}${s.k!=='all'?' s-'+s.k:''}" onclick="filterStatus('${s.k}')">${s.l}</div>`).join('');
+}
+function filterCat(cat){activeCat=cat;renderCatPills();renderList()}
+function filterStatus(s){activeStatus=s;renderStatusBar();renderList()}
+
+// ── RENDER LIST ──────────────────────────────────
+function renderList(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  let list=resources;
+  if(activeCat!=='all') list=list.filter(r=>r.cat===activeCat);
+  if(activeStatus!=='all') list=list.filter(r=>(r.status||'future')===activeStatus);
+  if(q) list=list.filter(r=>r.title.toLowerCase().includes(q)||(r.url||'').toLowerCase().includes(q)||(r.note||'').toLowerCase().includes(q)||(r.cat||'').toLowerCase().includes(q)||(r.sub||'').toLowerCase().includes(q)||(r.liContent||'').toLowerCase().includes(q));
+  const el=document.getElementById('listContent');
+  if(list.length===0){el.innerHTML=`<div class="empty-state"><div class="big">📭</div><p>No resources yet.<br>Tap <strong>+</strong> to add your first one.</p></div>`;return}
+  const byCat={};
+  list.forEach(r=>{const c=r.cat||'General';const s=r.sub||'';if(!byCat[c])byCat[c]={};if(!byCat[c][s])byCat[c][s]=[];byCat[c][s].push(r)});
+  let html='';
+  Object.keys(byCat).forEach(cat=>{
+    const subMap=byCat[cat];const subKeys=Object.keys(subMap);
+    const hasMultipleSubs=subKeys.length>1||(subKeys.length===1&&subKeys[0]!=='');
+    if(activeCat==='all') html+=`<div class="section-head"><span class="section-title">${esc(cat)}</span></div>`;
+    subKeys.forEach(sub=>{
+      if(hasMultipleSubs&&sub){
+        html+=`<div class="sub-section"><div class="sub-title">${esc(sub)}</div>`;
+        subMap[sub].forEach(r=>{html+=cardHtml(r)});
+        html+=`</div>`;
+      }else{subMap[sub].forEach(r=>{html+=cardHtml(r)})}
     });
   });
-  el.innerHTML = html;
+  el.innerHTML=html;
 }
 
-function openSheet() {
-  editId = null; selectedType = 'web';
-  document.getElementById('sheetTitle').textContent = 'Add Resource';
-  document.getElementById('fTitle').value = '';
-  document.getElementById('fUrl').value = '';
-  document.getElementById('fNote').value = '';
-  renderTypeOpts(); renderCatSelect();
+function cardHtml(r){
+  const domain=r.url?tryDomain(r.url):'';
+  const d=new Date(r.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const st=r.status||'future';
+  const cardBg=r.noteColor?`style="background:${r.noteColor}"`:''
+  let extra='';
+  if(r.type==='note'||r.type==='li'){
+    if(r.liContent) extra+=`<div class="card-content">${esc(r.liContent)}</div>`;
+    else if(r.note) extra+=`<div class="card-content">${esc(r.note)}</div>`;
+    if(r.noteTags&&r.noteTags.length>0) extra+=`<div class="note-tags">${r.noteTags.map(t=>`<span class="note-tag-chip">#${esc(t)}</span>`).join('')}</div>`;
+    if(r.checklist&&r.checklist.length>0){
+      extra+=`<ul class="note-checklist">`;
+      r.checklist.forEach((item,i)=>{
+        extra+=`<li class="${item.done?'checked':''}"><input type="checkbox" ${item.done?'checked':''} onchange="toggleChecklist('${r.id}',${i},this.checked)"><span>${esc(item.text)}</span></li>`;
+      });
+      extra+=`</ul>`;
+    }
+  }else if(r.note){extra+=`<div class="card-note">${esc(r.note)}</div>`}
+  const noteCardStyle=r.noteColor?`style="background:${esc(r.noteColor)}"`:''
+  return`<div class="card" ${noteCardStyle}>
+    <div class="card-inner">
+      <div class="type-icon ${typeClass(r.type)}">${typeIcon(r.type)}</div>
+      <div class="card-body">
+        <div class="card-title">${esc(r.title)}</div>
+        ${domain?`<div class="card-url">${esc(domain)}</div>`:''}
+        ${extra}
+        ${r.type!=='note'&&r.type!=='li'&&r.note?`<div class="card-note">${esc(r.note)}</div>`:''}
+        <div class="card-meta">
+          <span class="tag">${esc(r.cat||'General')}</span>
+          ${r.sub?`<span class="subtag">${esc(r.sub)}</span>`:''}
+          ${statusBadge(st)}
+          <span class="date-label">${d}</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-actions">
+      ${r.url?`<button class="action-btn" onclick="window.open('${esc(r.url)}','_blank')">Open ↗</button><div class="action-sep"></div>`:''}
+      ${r.pdfData?`<button class="action-btn" onclick="openPdfData('${r.id}')">Open PDF</button><div class="action-sep"></div>`:''}
+      <button class="action-btn" onclick="editResource('${r.id}')">Edit</button>
+      <div class="action-sep"></div>
+      <button class="action-btn danger" onclick="deleteResource('${r.id}')">Delete</button>
+    </div>
+  </div>`;
+}
+
+function openPdfData(id){
+  const r=resources.find(x=>x.id===id);if(!r||!r.pdfData)return;
+  const blob=dataURLtoBlob(r.pdfData);
+  const url=URL.createObjectURL(blob);
+  window.open(url,'_blank');
+}
+function dataURLtoBlob(dataURL){
+  const arr=dataURL.split(',');const mime=arr[0].match(/:(.*?);/)[1];
+  const bstr=atob(arr[1]);let n=bstr.length;const u8=new Uint8Array(n);
+  while(n--){u8[n]=bstr.charCodeAt(n)}return new Blob([u8],{type:mime});
+}
+
+function toggleChecklist(id,idx,done){
+  const r=resources.find(x=>x.id===id);if(!r||!r.checklist)return;
+  r.checklist[idx].done=done;scheduleSave();
+}
+
+// ── ADD/EDIT SHEET ───────────────────────────────
+function openSheet(){
+  editId=null;selectedType='web';noteColor='';noteTags=[];noteChecklist=[];pdfMode='link';pdfFileData=null;
+  document.getElementById('sheetTitle').textContent='Add Resource';
+  document.getElementById('fTitle').value='';
+  document.getElementById('fUrl').value='';
+  document.getElementById('fNote').value='';
+  document.getElementById('fStatus').value='future';
+  document.getElementById('fLiContent').value='';
+  document.getElementById('liExtractStatus').classList.add('hidden');
+  document.getElementById('fileChosenLabel').classList.add('hidden');
+  document.getElementById('pdfFileInput').value='';
+  pdfFileData=null;
+  renderTypeOpts();renderCatSelect();renderNoteExtras();renderChecklistItems();renderTagChips();
   document.getElementById('overlay').classList.add('open');
 }
-function closeSheet() { document.getElementById('overlay').classList.remove('open'); }
-function closeSheetOutside(e) { if(e.target===document.getElementById('overlay')) closeSheet(); }
+function closeSheet(){document.getElementById('overlay').classList.remove('open')}
+function closeSheetOutside(e){if(e.target===document.getElementById('overlay'))closeSheet()}
 
-function selectType(t) { selectedType=t; renderTypeOpts(); document.getElementById('urlGroup').style.display=t==='note'?'none':'block'; }
-function renderTypeOpts() {
-  document.querySelectorAll('.type-opt').forEach(el => el.classList.toggle('selected', el.dataset.type===selectedType));
-  document.getElementById('urlGroup').style.display = selectedType==='note'?'none':'block';
+function selectType(t){
+  selectedType=t;
+  renderTypeOpts();
+  document.getElementById('urlGroup').style.display=(t==='web'||t==='yt'||t==='li')?'block':'none';
+  document.getElementById('pdfGroup').style.display=t==='pdf'?'block':'none';
+  document.getElementById('liContentGroup').style.display=t==='li'?'block':'none';
+  document.getElementById('noteExtras').style.display=t==='note'?'block':'none';
+  document.getElementById('noteGroup').style.display=(t==='note'||t==='pdf'||t==='web'||t==='yt')?'block':'none';
+  if(t==='li') document.getElementById('fUrl').placeholder='https://www.linkedin.com/posts/…';
+  else document.getElementById('fUrl').placeholder='https://…';
 }
-function renderCatSelect() {
-  const sel = document.getElementById('fCat');
-  sel.innerHTML = categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  if (activeCat !== 'all') sel.value = activeCat;
+function renderTypeOpts(){
+  document.querySelectorAll('.type-opt').forEach(el=>el.classList.toggle('selected',el.dataset.type===selectedType));
+  document.getElementById('urlGroup').style.display=(selectedType==='web'||selectedType==='yt'||selectedType==='li')?'block':'none';
+  document.getElementById('pdfGroup').style.display=selectedType==='pdf'?'block':'none';
+  document.getElementById('liContentGroup').style.display=selectedType==='li'?'block':'none';
+  document.getElementById('noteExtras').style.display=selectedType==='note'?'block':'none';
+  document.getElementById('noteGroup').style.display=(selectedType==='note'||selectedType==='pdf'||selectedType==='web'||selectedType==='yt')?'block':'none';
+}
+function renderNoteExtras(){
+  document.querySelectorAll('.color-opt').forEach(el=>el.classList.toggle('selected',el.dataset.color===noteColor));
 }
 
-function saveResource() {
-  const title = document.getElementById('fTitle').value.trim();
-  if (!title) { document.getElementById('fTitle').focus(); return; }
-  const url = document.getElementById('fUrl').value.trim();
-  const cat = document.getElementById('fCat').value;
-  const note = document.getElementById('fNote').value.trim();
-  if (editId) {
-    const idx = resources.findIndex(r=>r.id===editId);
-    if (idx>-1) resources[idx] = {...resources[idx],title,url,cat,note,type:selectedType};
-  } else {
-    resources.unshift({id:uid(),title,url,cat,note,type:selectedType,ts:Date.now()});
+// PDF TABS
+function switchPdfTab(mode){
+  pdfMode=mode;
+  document.querySelectorAll('.pdf-tab').forEach((el,i)=>el.classList.toggle('active',['link','upload'][i]===mode));
+  document.getElementById('pdfLinkDiv').style.display=mode==='link'?'block':'none';
+  document.getElementById('pdfUploadDiv').style.display=mode==='upload'?'block':'none';
+}
+function onPdfChosen(e){
+  const file=e.target.files[0];if(!file)return;
+  const lbl=document.getElementById('fileChosenLabel');
+  lbl.classList.remove('hidden');lbl.textContent='📄 '+file.name;
+  const reader=new FileReader();
+  reader.onload=ev=>{pdfFileData=ev.target.result};
+  reader.readAsDataURL(file);
+  if(!document.getElementById('fTitle').value) document.getElementById('fTitle').value=file.name.replace('.pdf','');
+}
+
+// NOTE COLOR
+function selectColor(c){noteColor=c;renderNoteExtras()}
+
+// NOTE TAGS
+function addTag(){
+  const inp=document.getElementById('fTagInput');
+  const val=inp.value.trim().toLowerCase().replace(/\s+/g,'');
+  if(!val||noteTags.includes(val))return;
+  noteTags.push(val);inp.value='';renderTagChips();
+}
+function removeTag(t){noteTags=noteTags.filter(x=>x!==t);renderTagChips()}
+function renderTagChips(){
+  document.getElementById('tagChips').innerHTML=noteTags.map(t=>`<div class="tag-chip">#${esc(t)}<span onclick="removeTag('${esc(t)}')">✕</span></div>`).join('');
+}
+
+// NOTE CHECKLIST
+function addChecklistItem(){
+  noteChecklist.push({text:'',done:false});renderChecklistItems();
+}
+function removeChecklistItem(i){noteChecklist.splice(i,1);renderChecklistItems()}
+function renderChecklistItems(){
+  const ul=document.getElementById('checklistItems');
+  ul.innerHTML=noteChecklist.map((item,i)=>`<li>
+    <input type="text" value="${esc(item.text)}" placeholder="Checklist item…" oninput="noteChecklist[${i}].text=this.value">
+    <button onclick="removeChecklistItem(${i})">✕</button>
+  </li>`).join('');
+}
+
+function renderCatSelect(){
+  const sel=document.getElementById('fCat');
+  sel.innerHTML=categories.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  if(activeCat!=='all') sel.value=activeCat;
+  renderSubSelect();
+}
+function renderSubSelect(){
+  const catName=document.getElementById('fCat').value;
+  const catObj=getCatObj(catName);
+  const subSel=document.getElementById('fSubCat');
+  const group=document.getElementById('subCatGroup');
+  if(catObj.subs&&catObj.subs.length>0){
+    group.style.display='block';
+    subSel.innerHTML=`<option value="">None</option>`+catObj.subs.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  }else{group.style.display='none'}
+}
+
+async function saveResource(){
+  const title=document.getElementById('fTitle').value.trim();
+  if(!title){document.getElementById('fTitle').focus();return}
+  let url=document.getElementById('fUrl').value.trim();
+  if(selectedType==='pdf'&&pdfMode==='link') url=document.getElementById('fPdfUrl').value.trim();
+  const cat=document.getElementById('fCat').value;
+  const sub=document.getElementById('fSubCat').value||'';
+  const note=document.getElementById('fNote').value.trim();
+  const status=document.getElementById('fStatus').value||'future';
+  const liContent=document.getElementById('fLiContent').value.trim();
+  const obj={title,url,cat,sub,note,status,type:selectedType,
+    noteColor:selectedType==='note'?noteColor:'',
+    noteTags:selectedType==='note'?[...noteTags]:[],
+    checklist:selectedType==='note'?noteChecklist.filter(x=>x.text.trim()).map(x=>({text:x.text,done:x.done})):[],
+    liContent:selectedType==='li'?liContent:'',
+    pdfData:selectedType==='pdf'&&pdfMode==='upload'?pdfFileData:null
+  };
+  if(editId){
+    const idx=resources.findIndex(r=>r.id===editId);
+    if(idx>-1) resources[idx]={...resources[idx],...obj};
+  }else{
+    resources.unshift({id:uid(),ts:Date.now(),...obj});
   }
-  closeSheet(); renderList(); scheduleSave();
+  closeSheet();renderList();scheduleSave();
 }
 
-function editResource(id) {
-  const r = resources.find(x=>x.id===id); if(!r) return;
-  editId=id; selectedType=r.type||'web';
+function editResource(id){
+  const r=resources.find(x=>x.id===id);if(!r)return;
+  editId=id;selectedType=r.type||'web';
+  noteColor=r.noteColor||'';noteTags=[...(r.noteTags||[])];
+  noteChecklist=(r.checklist||[]).map(x=>({...x}));
   document.getElementById('sheetTitle').textContent='Edit Resource';
   document.getElementById('fTitle').value=r.title;
   document.getElementById('fUrl').value=r.url||'';
+  document.getElementById('fPdfUrl').value=r.url||'';
   document.getElementById('fNote').value=r.note||'';
-  renderTypeOpts(); renderCatSelect();
-  document.getElementById('fCat').value=r.cat;
+  document.getElementById('fStatus').value=r.status||'future';
+  document.getElementById('fLiContent').value=r.liContent||'';
+  renderTypeOpts();renderNoteExtras();renderCatSelect();renderTagChips();renderChecklistItems();
+  document.getElementById('fCat').value=r.cat;renderSubSelect();
+  document.getElementById('fSubCat').value=r.sub||'';
   document.getElementById('overlay').classList.add('open');
 }
-
-function deleteResource(id) {
-  if(!confirm('Delete this resource?')) return;
-  resources = resources.filter(r=>r.id!==id);
-  renderList(); scheduleSave();
+function deleteResource(id){
+  if(!confirm('Delete this resource?'))return;
+  resources=resources.filter(r=>r.id!==id);renderList();scheduleSave();
 }
 
-function toggleNewCat() {
-  const row = document.getElementById('newCatRow');
+// ── NEW CATEGORY ─────────────────────────────────
+function openNewCat(){
+  const row=document.getElementById('newCatRow');
   row.classList.toggle('hidden');
   if(!row.classList.contains('hidden')) document.getElementById('newCatInput').focus();
 }
-function addCategory() {
-  const val = document.getElementById('newCatInput').value.trim();
-  if(!val||categories.includes(val)) return;
-  categories.push(val);
+function addCategory(){
+  const val=document.getElementById('newCatInput').value.trim();
+  if(!val||categories.find(c=>c.name===val))return;
+  categories.push({name:val,subs:[]});
   document.getElementById('newCatInput').value='';
   document.getElementById('newCatRow').classList.add('hidden');
-  renderCatPills(); scheduleSave();
+  renderCatPills();scheduleSave();
 }
-document.getElementById('newCatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addCategory(); });
+document.getElementById('newCatInput').addEventListener('keydown',e=>{if(e.key==='Enter')addCategory()});
+
+// ── CAT MANAGER (with drag-to-reorder) ───────────
+let dragSrcIdx=null, dragType=null, dragCatIdx=null;
+
+function openCatManager(){renderCatManager();document.getElementById('catOverlay').classList.add('open')}
+function closeCatManager(){document.getElementById('catOverlay').classList.remove('open')}
+function closeCatOutside(e){if(e.target===document.getElementById('catOverlay'))closeCatManager()}
+
+function renderCatManager(){
+  let html=`<h2>Manage Categories</h2>`;
+  categories.forEach((c,ci)=>{
+    html+=`<div class="cat-item" id="cat-item-${ci}" draggable="true"
+      ondragstart="dragStart(event,'cat',${ci})" ondragover="dragOver(event,'cat',${ci})"
+      ondrop="dropOn(event,'cat',${ci})" ondragleave="dragLeave(event,'cat',${ci})">
+      <div class="cat-item-row">
+        <div class="drag-handle" title="Drag to reorder">⠿</div>
+        <div class="cat-item-name">${esc(c.name)}</div>
+        <button class="cat-item-del" onclick="deleteCategory(${ci})">✕</button>
+      </div>`;
+    if(c.subs&&c.subs.length>0){
+      html+=`<div class="sub-list">`;
+      c.subs.forEach((s,si)=>{
+        html+=`<div class="sub-item" id="sub-item-${ci}-${si}" draggable="true"
+          ondragstart="dragStart(event,'sub',${si},${ci})" ondragover="dragOver(event,'sub',${si},${ci})"
+          ondrop="dropOn(event,'sub',${si},${ci})" ondragleave="dragLeave(event,'sub',${si},${ci})">
+          <div class="sub-drag">⠿</div>
+          <div class="sub-item-name">↳ ${esc(s)}</div>
+          <button class="sub-item-del" onclick="deleteSubCat(${ci},${si})">✕</button>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    html+=`<div class="add-sub-row">
+      <input type="text" id="subInput${ci}" placeholder="Add sub-category…" maxlength="30" onkeydown="if(event.key==='Enter')addSubCat(${ci})">
+      <button onclick="addSubCat(${ci})">+ Sub</button>
+    </div></div>`;
+  });
+  html+=`<button class="done-btn" onclick="closeCatManager()">Done</button>`;
+  document.getElementById('catManagerPanel').innerHTML=html;
+}
+
+function dragStart(e,type,idx,catIdx){dragType=type;dragSrcIdx=idx;dragCatIdx=catIdx;e.dataTransfer.effectAllowed='move'}
+function dragOver(e,type,idx,catIdx){if(dragType!==type)return;e.preventDefault();e.dataTransfer.dropEffect='move';const el=type==='cat'?document.getElementById(`cat-item-${idx}`):document.getElementById(`sub-item-${catIdx}-${idx}`);if(el)el.classList.add('drag-over')}
+function dragLeave(e,type,idx,catIdx){const el=type==='cat'?document.getElementById(`cat-item-${idx}`):document.getElementById(`sub-item-${catIdx}-${idx}`);if(el)el.classList.remove('drag-over')}
+function dropOn(e,type,idx,catIdx){
+  e.preventDefault();
+  if(dragType!==type||dragSrcIdx===idx)return;
+  if(type==='cat'){
+    const moved=categories.splice(dragSrcIdx,1)[0];categories.splice(idx,0,moved);
+  }else{
+    const subs=categories[catIdx].subs;
+    const moved=subs.splice(dragSrcIdx,1)[0];subs.splice(idx,0,moved);
+  }
+  scheduleSave();renderCatManager();renderCatPills();
+}
+
+function deleteCategory(ci){
+  const cat=categories[ci];
+  const hasRes=resources.some(r=>r.cat===cat.name);
+  if(hasRes&&!confirm(`Delete "${cat.name}"? Resources will move to General.`))return;
+  if(hasRes) resources.forEach(r=>{if(r.cat===cat.name)r.cat='General'});
+  categories.splice(ci,1);
+  if(activeCat===cat.name) activeCat='all';
+  renderCatPills();renderList();scheduleSave();renderCatManager();
+}
+function addSubCat(ci){
+  const inp=document.getElementById(`subInput${ci}`);
+  const val=inp.value.trim();
+  if(!val||categories[ci].subs.includes(val))return;
+  categories[ci].subs.push(val);scheduleSave();renderCatManager();
+}
+function deleteSubCat(ci,si){
+  const sub=categories[ci].subs[si];
+  resources.forEach(r=>{if(r.cat===categories[ci].name&&r.sub===sub)r.sub=''});
+  categories[ci].subs.splice(si,1);scheduleSave();renderCatManager();renderList();
+}
+
+// ── TO-DO ─────────────────────────────────────────
+function addTodo(){
+  const inp=document.getElementById('todoInput');
+  const text=inp.value.trim();if(!text)return;
+  if(!todos[today]) todos[today]=[];
+  todos[today].push({id:uid(),text,done:false,ts:Date.now()});
+  inp.value='';renderTodos();scheduleSave();
+}
+function addTodoFromFab(){
+  switchTab('todo');
+  setTimeout(()=>document.getElementById('todoInput').focus(),100);
+}
+document.getElementById('todoInput').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo()});
+
+function toggleTodo(id){
+  const list=todos[today]||[];
+  const t=list.find(x=>x.id===id);if(!t)return;
+  t.done=!t.done;renderTodos();scheduleSave();
+}
+function deleteTodo(id){
+  todos[today]=(todos[today]||[]).filter(x=>x.id!==id);renderTodos();scheduleSave();
+}
+function setTodoFilter(f){
+  activeTodoFilter=f;
+  document.querySelectorAll('.tf-pill').forEach(el=>{el.classList.remove('active')});
+  document.getElementById('tf-'+f).classList.add('active');
+  renderTodos();
+}
+function renderTodos(){
+  if(!todos[today]) todos[today]=[];
+  let list=todos[today];
+  const total=list.length,done=list.filter(x=>x.done).length;
+  document.getElementById('todoStats').textContent=total?`${done}/${total} done`:'';
+  if(activeTodoFilter==='done') list=list.filter(x=>x.done);
+  else if(activeTodoFilter==='notdone') list=list.filter(x=>!x.done);
+  const el=document.getElementById('todoList');
+  if(list.length===0){
+    el.innerHTML=`<div class="empty-state"><div class="big">✅</div><p>${activeTodoFilter==='done'?'No completed tasks yet.':activeTodoFilter==='notdone'?'All tasks done!':'No tasks for today.<br>Tap + to add one.'}</p></div>`;
+    return;
+  }
+  el.innerHTML=list.map(t=>`<div class="todo-item ${t.done?'done-item':''}">
+    <div class="todo-check ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')">${t.done?'✓':''}</div>
+    <div class="todo-body">
+      <div class="todo-text ${t.done?'striked':''}">${esc(t.text)}</div>
+    </div>
+    <button class="todo-del" onclick="deleteTodo('${t.id}')">✕</button>
+  </div>`).join('');
+}
+
+// ── TRACKER ──────────────────────────────────────
+function renderTracker(){
+  // archive today's todos into tracker for display (snapshot only when day ends)
+  const allDays=Object.keys(tracker).sort().reverse();
+  const el=document.getElementById('trackerList');
+  const total=document.getElementById('trackerTotal');
+  if(allDays.length===0){el.innerHTML=`<div class="tracker-empty">📅 No history yet.<br>Completed days will appear here.</div>`;total.textContent='';return}
+  total.textContent=`${allDays.length} day${allDays.length>1?'s':''} tracked`;
+  el.innerHTML=allDays.map(day=>{
+    const items=tracker[day]||[];
+    const done=items.filter(x=>x.done).length;
+    const pct=items.length?Math.round(done/items.length*100):0;
+    return`<div class="tracker-date-card">
+      <div class="tracker-date-head" onclick="toggleTrackerDay('${day}')">
+        <div>
+          <div class="tracker-date-title">${formatDate(day)}</div>
+          <div class="tracker-date-stat">${done}/${items.length} done · ${pct}% complete</div>
+        </div>
+        <div style="font-size:20px">${pct===100?'🌟':pct>=50?'🟡':'🔴'}</div>
+      </div>
+      <div class="tracker-items" id="ti-${day}">
+        ${items.length===0?'<div style="font-size:13px;color:var(--muted);padding:8px 0">No tasks recorded.</div>':
+          items.map(t=>`<div class="tracker-item">
+            <div class="tcheck ${t.done?'done':'notdone'}">${t.done?'✓':'✗'}</div>
+            <div style="flex:1;font-size:13px;${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.text)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleTrackerDay(day){
+  const el=document.getElementById('ti-'+day);
+  if(el) el.classList.toggle('open');
+}
+
+// ── AUTO END-OF-DAY ───────────────────────────────
+setInterval(()=>{
+  const newToday=todayKey();
+  if(newToday!==today){
+    // save old day to tracker
+    const oldTodos=todos[today]||[];
+    if(oldTodos.length>0) tracker[today]=oldTodos.map(t=>({text:t.text,done:t.done}));
+    today=newToday;
+    scheduleSave();
+    document.getElementById('todoDateLabel').textContent=formatDate(today);
+    renderTodos();renderTracker();
+  }
+},60000);
 
 init();
 </script>
 </body>
 </html>
+HTMLEOF
+echo "done"
+Output
+
+done
