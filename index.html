@@ -228,6 +228,19 @@ header h1{font-family:'Lora',serif;font-size:20px;font-weight:600}
 @keyframes spin{to{transform:rotate(360deg)}}
 .hidden{display:none}
 .li-extracting{font-size:12px;color:var(--li);margin-top:4px;font-style:italic}
+
+/* EXTRA LINKS */
+.extra-links-list{list-style:none;margin-bottom:6px}
+.extra-links-list li{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.extra-links-list li input{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none}
+.extra-links-list li input:focus{border-color:var(--accent)}
+.extra-links-list li input.url-inp{flex:2}
+.extra-links-list li button{padding:5px 9px;background:var(--dl);color:var(--danger);border:none;border-radius:6px;cursor:pointer;font-size:13px;flex-shrink:0}
+.add-link-btn{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;padding:0}
+/* extra link chips on card */
+.extra-links-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.extra-link-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);background:var(--al);border-radius:6px;padding:2px 8px;text-decoration:none;font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.extra-link-chip:active{opacity:.7}
 </style>
 </head>
 <body>
@@ -353,6 +366,13 @@ header h1{font-family:'Lora',serif;font-size:20px;font-weight:600}
       </div>
     </div>
 
+    <!-- EXTRA LINKS -->
+    <div id="extraLinksGroup" class="fg">
+      <label>Additional Links <span style="color:var(--muted);font-weight:400">(optional — add as many as you need)</span></label>
+      <ul class="extra-links-list" id="extraLinksList"></ul>
+      <button type="button" class="add-link-btn" onclick="addExtraLink()">+ Add another link</button>
+    </div>
+
     <!-- LinkedIn extracted content -->
     <div id="liContentGroup" class="fg hidden">
       <label>Extracted Content</label>
@@ -426,7 +446,7 @@ let resources=[], categories=[
 ];
 let todos={}, tracker={};
 let activeCat='all', activeStatus='all', activeTodoFilter='all';
-let editId=null, selectedType='web', noteColor='', noteTags=[], noteChecklist=[];
+let editId=null, selectedType='web', noteColor='', noteTags=[], noteChecklist=[], extraLinks=[];
 let pdfMode='link', pdfFileData=null;
 let driveFileId=null, saveTimer=null;
 let currentTab='resources';
@@ -610,6 +630,7 @@ function cardHtml(r){
         </div>
       </div>
     </div>
+    ${(r.extraLinks&&r.extraLinks.length>0)?`<div class="extra-links-row" style="padding:0 13px 9px">${r.extraLinks.map(lk=>`<a class="extra-link-chip" href="${esc(lk.url)}" target="_blank" rel="noopener">🔗 ${esc(lk.label||tryDomain(lk.url))}</a>`).join('')}</div>`:''}
     <div class="card-actions">
       ${r.url?`<button class="action-btn" onclick="window.open('${esc(r.url)}','_blank')">Open ↗</button><div class="action-sep"></div>`:''}
       ${r.pdfData?`<button class="action-btn" onclick="openPdfData('${r.id}')">Open PDF</button><div class="action-sep"></div>`:''}
@@ -639,7 +660,7 @@ function toggleChecklist(id,idx,done){
 
 // ── ADD/EDIT SHEET ───────────────────────────────
 function openSheet(){
-  editId=null;selectedType='web';noteColor='';noteTags=[];noteChecklist=[];pdfMode='link';pdfFileData=null;
+  editId=null;selectedType='web';noteColor='';noteTags=[];noteChecklist=[];extraLinks=[];pdfMode='link';pdfFileData=null;
   document.getElementById('sheetTitle').textContent='Add Resource';
   document.getElementById('fTitle').value='';
   document.getElementById('fUrl').value='';
@@ -650,7 +671,7 @@ function openSheet(){
   document.getElementById('fileChosenLabel').classList.add('hidden');
   document.getElementById('pdfFileInput').value='';
   pdfFileData=null;
-  renderTypeOpts();renderCatSelect();renderNoteExtras();renderChecklistItems();renderTagChips();
+  renderTypeOpts();renderCatSelect();renderNoteExtras();renderChecklistItems();renderTagChips();renderExtraLinks();
   document.getElementById('overlay').classList.add('open');
 }
 function closeSheet(){document.getElementById('overlay').classList.remove('open')}
@@ -664,6 +685,7 @@ function selectType(t){
   document.getElementById('liContentGroup').style.display=t==='li'?'block':'none';
   document.getElementById('noteExtras').style.display=t==='note'?'block':'none';
   document.getElementById('noteGroup').style.display=(t==='note'||t==='pdf'||t==='web'||t==='yt')?'block':'none';
+  document.getElementById('extraLinksGroup').style.display=t==='note'?'none':'block';
   if(t==='li') document.getElementById('fUrl').placeholder='https://www.linkedin.com/posts/…';
   else document.getElementById('fUrl').placeholder='https://…';
 }
@@ -674,6 +696,7 @@ function renderTypeOpts(){
   document.getElementById('liContentGroup').style.display=selectedType==='li'?'block':'none';
   document.getElementById('noteExtras').style.display=selectedType==='note'?'block':'none';
   document.getElementById('noteGroup').style.display=(selectedType==='note'||selectedType==='pdf'||selectedType==='web'||selectedType==='yt')?'block':'none';
+  document.getElementById('extraLinksGroup').style.display=selectedType==='note'?'none':'block';
 }
 function renderNoteExtras(){
   document.querySelectorAll('.color-opt').forEach(el=>el.classList.toggle('selected',el.dataset.color===noteColor));
@@ -694,6 +717,27 @@ function onPdfChosen(e){
   reader.onload=ev=>{pdfFileData=ev.target.result};
   reader.readAsDataURL(file);
   if(!document.getElementById('fTitle').value) document.getElementById('fTitle').value=file.name.replace('.pdf','');
+}
+
+// EXTRA LINKS
+function addExtraLink(){
+  extraLinks.push({url:'',label:''});renderExtraLinks();
+  // focus the new url field
+  setTimeout(()=>{
+    const inputs=document.querySelectorAll('#extraLinksList .url-inp');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  },50);
+}
+function removeExtraLink(i){extraLinks.splice(i,1);renderExtraLinks()}
+function renderExtraLinks(){
+  const ul=document.getElementById('extraLinksList');
+  if(!ul) return;
+  if(extraLinks.length===0){ul.innerHTML='';return;}
+  ul.innerHTML=extraLinks.map((lk,i)=>`<li>
+    <input class="url-inp" type="url" value="${esc(lk.url)}" placeholder="https://…" oninput="extraLinks[${i}].url=this.value">
+    <input type="text" value="${esc(lk.label)}" placeholder="Label (optional)" style="flex:1" oninput="extraLinks[${i}].label=this.value">
+    <button onclick="removeExtraLink(${i})">✕</button>
+  </li>`).join('');
 }
 
 // NOTE COLOR
@@ -756,7 +800,8 @@ async function saveResource(){
     noteTags:selectedType==='note'?[...noteTags]:[],
     checklist:selectedType==='note'?noteChecklist.filter(x=>x.text.trim()).map(x=>({text:x.text,done:x.done})):[],
     liContent:selectedType==='li'?liContent:'',
-    pdfData:selectedType==='pdf'&&pdfMode==='upload'?pdfFileData:null
+    pdfData:selectedType==='pdf'&&pdfMode==='upload'?pdfFileData:null,
+    extraLinks:extraLinks.filter(l=>l.url.trim()).map(l=>({url:l.url.trim(),label:l.label.trim()}))
   };
   if(editId){
     const idx=resources.findIndex(r=>r.id===editId);
@@ -779,7 +824,8 @@ function editResource(id){
   document.getElementById('fNote').value=r.note||'';
   document.getElementById('fStatus').value=r.status||'future';
   document.getElementById('fLiContent').value=r.liContent||'';
-  renderTypeOpts();renderNoteExtras();renderCatSelect();renderTagChips();renderChecklistItems();
+  extraLinks=(r.extraLinks||[]).map(x=>({...x}));
+  renderTypeOpts();renderNoteExtras();renderCatSelect();renderTagChips();renderChecklistItems();renderExtraLinks();
   document.getElementById('fCat').value=r.cat;renderSubSelect();
   document.getElementById('fSubCat').value=r.sub||'';
   document.getElementById('overlay').classList.add('open');
