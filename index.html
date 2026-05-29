@@ -206,18 +206,18 @@ header h1{font-family:'Lora',serif;font-size:20px;font-weight:600}
 
 /* TRACKER */
 .tracker-section{padding:0 14px}
-.tracker-date-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
 .tracker-date-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
 .tracker-date-title{font-weight:600;font-size:14px}
 .tracker-date-stat{font-size:12px;color:var(--muted)}
 .tracker-items{margin-top:10px;display:none}
 .tracker-items.open{display:block}
-.tracker-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.tracker-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
 .tracker-item:last-child{border-bottom:none}
-.tracker-item .tcheck{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.tracker-item .tcheck{width:18px;height:18px;border-radius:5px;border:2px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:2px}
 .tcheck.done{background:var(--accent);border-color:var(--accent);color:#fff}
 .tcheck.notdone{background:var(--dl);border-color:var(--danger);color:var(--danger)}
-.tracker-empty{text-align:center;padding:30px;color:var(--muted);font-size:14px}
+.tracker-empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:14px;line-height:1.6}
+.tracker-date-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;transition:border-color .2s}
 
 /* MISC */
 .empty-state{text-align:center;padding:44px 20px;color:var(--muted)}
@@ -462,9 +462,7 @@ async function showApp(){
 function checkDayRollover(){
   const newToday=todayKey();
   if(newToday!==today){
-    // archive yesterday's todos
-    const yTodos=todos[today]||[];
-    if(yTodos.length>0) tracker[today]=yTodos.map(t=>({text:t.text,done:t.done}));
+    syncTodayToTracker(); // archive old day with full details
     today=newToday;
     scheduleSave();
   }
@@ -888,8 +886,10 @@ function addTodo(){
   const inp=document.getElementById('todoInput');
   const text=inp.value.trim();if(!text)return;
   if(!todos[today]) todos[today]=[];
-  todos[today].push({id:uid(),text,done:false,ts:Date.now()});
-  inp.value='';renderTodos();scheduleSave();
+  todos[today].push({id:uid(),text,done:false,ts:Date.now(),completedAt:null});
+  inp.value='';
+  syncTodayToTracker();
+  renderTodos();renderTracker();scheduleSave();
 }
 function addTodoFromFab(){
   switchTab('todo');
@@ -900,10 +900,17 @@ document.getElementById('todoInput').addEventListener('keydown',e=>{if(e.key==='
 function toggleTodo(id){
   const list=todos[today]||[];
   const t=list.find(x=>x.id===id);if(!t)return;
-  t.done=!t.done;renderTodos();scheduleSave();
+  t.done=!t.done;
+  if(t.done) t.completedAt=Date.now();
+  else t.completedAt=null;
+  // Immediately sync this day's snapshot into tracker
+  syncTodayToTracker();
+  renderTodos();renderTracker();scheduleSave();
 }
 function deleteTodo(id){
-  todos[today]=(todos[today]||[]).filter(x=>x.id!==id);renderTodos();scheduleSave();
+  todos[today]=(todos[today]||[]).filter(x=>x.id!==id);
+  syncTodayToTracker();
+  renderTodos();renderTracker();scheduleSave();
 }
 function setTodoFilter(f){
   activeTodoFilter=f;
@@ -933,47 +940,96 @@ function renderTodos(){
 }
 
 // ── TRACKER ──────────────────────────────────────
+// Keeps tracker[today] always in sync with todos[today]
+function syncTodayToTracker(){
+  const list=todos[today]||[];
+  tracker[today]=list.map(t=>({
+    id:t.id,
+    text:t.text,
+    done:t.done,
+    addedAt:t.ts||Date.now(),
+    completedAt:t.completedAt||null
+  }));
+}
+
+// ── TRACKER ──────────────────────────────────────
 function renderTracker(){
-  // archive today's todos into tracker for display (snapshot only when day ends)
+  syncTodayToTracker();
   const allDays=Object.keys(tracker).sort().reverse();
   const el=document.getElementById('trackerList');
   const total=document.getElementById('trackerTotal');
-  if(allDays.length===0){el.innerHTML=`<div class="tracker-empty">📅 No history yet.<br>Completed days will appear here.</div>`;total.textContent='';return}
-  total.textContent=`${allDays.length} day${allDays.length>1?'s':''} tracked`;
+
+  if(allDays.length===0){
+    el.innerHTML=`<div class="tracker-empty">📅 No tasks yet.<br>Add tasks in the To-Do tab — they'll appear here.</div>`;
+    total.textContent='';return;
+  }
+
+  // Overall stats across all days
+  const totalDone=Object.values(tracker).flat().filter(x=>x.done).length;
+  const totalTasks=Object.values(tracker).flat().length;
+  total.textContent=`${allDays.length} day${allDays.length>1?'s':''} · ${totalDone}/${totalTasks} total done`;
+
   el.innerHTML=allDays.map(day=>{
     const items=tracker[day]||[];
     const done=items.filter(x=>x.done).length;
     const pct=items.length?Math.round(done/items.length*100):0;
-    return`<div class="tracker-date-card">
-      <div class="tracker-date-head" onclick="toggleTrackerDay('${day}')">
-        <div>
-          <div class="tracker-date-title">${formatDate(day)}</div>
-          <div class="tracker-date-stat">${done}/${items.length} done · ${pct}% complete</div>
-        </div>
-        <div style="font-size:20px">${pct===100?'🌟':pct>=50?'🟡':'🔴'}</div>
-      </div>
-      <div class="tracker-items" id="ti-${day}">
-        ${items.length===0?'<div style="font-size:13px;color:var(--muted);padding:8px 0">No tasks recorded.</div>':
-          items.map(t=>`<div class="tracker-item">
+    const isToday=day===today;
+    const emoji=pct===100?'🌟':pct>=75?'🟢':pct>=50?'🟡':'🔴';
+
+    // Progress bar width
+    const barPct=items.length?pct:0;
+
+    const itemsHtml=items.length===0
+      ?`<div style="font-size:13px;color:var(--muted);padding:10px 0 4px">No tasks recorded for this day.</div>`
+      :items.map(t=>{
+          const addedTime=t.addedAt?new Date(t.addedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+          const doneTime=t.completedAt?new Date(t.completedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+          return `<div class="tracker-item">
             <div class="tcheck ${t.done?'done':'notdone'}">${t.done?'✓':'✗'}</div>
-            <div style="flex:1;font-size:13px;${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.text)}</div>
-          </div>`).join('')}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;${t.done?'text-decoration:line-through;color:var(--muted)':'font-weight:500'};word-break:break-word">${esc(t.text)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap">
+                ${addedTime?`<span>⏰ Added ${addedTime}</span>`:''}
+                ${t.done&&doneTime?`<span style="color:var(--accent)">✅ Done at ${doneTime}</span>`:''}
+                ${!t.done?`<span style="color:#B45309">⏳ Pending</span>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+
+    return`<div class="tracker-date-card" style="${isToday?'border-color:var(--accent);border-width:2px':''}">
+      <div class="tracker-date-head" onclick="toggleTrackerDay('${day}',this)">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <div class="tracker-date-title">${isToday?'📍 Today — ':''} ${formatDate(day)}</div>
+            <div style="font-size:18px">${emoji}</div>
+          </div>
+          <div class="tracker-date-stat" style="margin-top:3px">${done}/${items.length} done · ${pct}%</div>
+          <div style="margin-top:6px;background:var(--border);border-radius:4px;height:5px;width:100%">
+            <div style="height:5px;border-radius:4px;background:${pct===100?'var(--accent)':pct>=50?'#F59E0B':'#E74C3C'};width:${barPct}%;transition:width .4s"></div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);flex-shrink:0;margin-left:10px;align-self:flex-start;padding-top:2px" id="ti-arrow-${day}">▼</div>
+      </div>
+      <div class="tracker-items ${isToday?'open':''}" id="ti-${day}">
+        <div style="margin-top:10px">${itemsHtml}</div>
       </div>
     </div>`;
   }).join('');
 }
-function toggleTrackerDay(day){
+function toggleTrackerDay(day,headEl){
   const el=document.getElementById('ti-'+day);
   if(el) el.classList.toggle('open');
+  const arrow=document.getElementById('ti-arrow-'+day);
+  if(arrow) arrow.textContent=el.classList.contains('open')?'▲':'▼';
 }
 
 // ── AUTO END-OF-DAY ───────────────────────────────
 setInterval(()=>{
   const newToday=todayKey();
   if(newToday!==today){
-    // save old day to tracker
-    const oldTodos=todos[today]||[];
-    if(oldTodos.length>0) tracker[today]=oldTodos.map(t=>({text:t.text,done:t.done}));
+    // Save old day fully to tracker then roll over
+    syncTodayToTracker();
     today=newToday;
     scheduleSave();
     document.getElementById('todoDateLabel').textContent=formatDate(today);
