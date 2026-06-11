@@ -227,6 +227,35 @@ header h1{font-family:'Lora',serif;font-size:20px;font-weight:600}
 .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .hidden{display:none}
+
+/* BACKUP PANEL */
+.backup-bar{background:#EEF2FF;border-bottom:1px solid #C7D2FE;padding:8px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.backup-bar span{font-size:12px;font-weight:600;color:#3730A3;flex:1;min-width:120px}
+.bk-btn{flex-shrink:0;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s}
+.bk-btn:active{opacity:.75}
+.bk-json{background:#2D6A4F;color:#fff}
+.bk-xlsx{background:#217346;color:#fff}
+.bk-imp{background:#6366F1;color:#fff}
+.bk-ls{background:#F59E0B;color:#fff}
+
+/* BACKUP OVERLAY */
+.bk-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:center;justify-content:center;padding:20px}
+.bk-overlay.open{display:flex}
+.bk-box{background:var(--card);border-radius:18px;padding:24px 20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto}
+.bk-box h2{font-family:'Lora',serif;font-size:18px;font-weight:600;margin-bottom:6px}
+.bk-box p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+.bk-section{background:var(--bg);border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
+.bk-section h3{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)}
+.bk-section p{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.bk-full-btn{width:100%;padding:11px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:6px;transition:opacity .15s}
+.bk-full-btn:active{opacity:.8}
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:6px}
+.upload-zone:hover{border-color:var(--accent)}
+.upload-zone p{font-size:13px;color:var(--muted);margin:0}
+.upload-zone input{display:none}
+.bk-close{width:100%;padding:11px;border-radius:10px;font-size:14px;font-weight:500;border:1.5px solid var(--border);cursor:pointer;font-family:'DM Sans',sans-serif;background:none;color:var(--muted);margin-top:4px}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1C1917;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
 .li-extracting{font-size:12px;color:var(--li);margin-top:4px;font-style:italic}
 
 /* EXTRA LINKS */
@@ -262,6 +291,13 @@ header h1{font-family:'Lora',serif;font-size:20px;font-weight:600}
   <div id="syncBar">
     <span><span class="sdot" id="sdot"></span><span id="stext">Connecting…</span></span>
     <button onclick="signOut()">Sign out</button>
+  </div>
+  <!-- BACKUP BAR -->
+  <div class="backup-bar">
+    <span>💾 Backups</span>
+    <button class="bk-btn bk-xlsx" onclick="exportExcel()">⬇ Excel</button>
+    <button class="bk-btn bk-json" onclick="exportJSON()">⬇ JSON</button>
+    <button class="bk-btn bk-imp" onclick="openBackupPanel()">⬆ Import / Restore</button>
   </div>
   <header>
     <div class="hdr-row">
@@ -506,7 +542,21 @@ async function loadFromDrive(){
       tracker=data.tracker||{};
     }
     setSyncStatus('ok','Synced ✓');
-  }catch(e){setSyncStatus('error','Could not load')}
+    saveLocalBackup();
+  }catch(e){
+    setSyncStatus('error','Could not load');
+    // Try local backup as fallback
+    try{
+      const bak=localStorage.getItem(LS_BACKUP);
+      if(bak){
+        const d=JSON.parse(bak);
+        resources=d.resources||[];
+        categories=(d.categories||[]).map(c=>typeof c==='string'?{name:c,subs:[]}:c);
+        todos=d.todos||{};tracker=d.tracker||{};
+        setSyncStatus('error','Drive failed — loaded local backup');
+      }
+    }catch(e2){}
+  }
   renderCatPills();renderStatusBar();renderList();
   renderTodos();renderTracker();
 }
@@ -522,6 +572,7 @@ async function saveToDrive(){
       await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body});
     }
     setSyncStatus('ok','Saved ✓');
+    saveLocalBackup();
   }catch(e){setSyncStatus('error','Save failed')}
 }
 function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveToDrive,800)}
@@ -1083,8 +1134,241 @@ setInterval(()=>{
   }
 },60000);
 
+// ── AUTO LOCAL BACKUP ──────────────────────────────
+const LS_BACKUP='my_resources_localbak';
+function saveLocalBackup(){
+  try{localStorage.setItem(LS_BACKUP,JSON.stringify({resources,categories,todos,tracker,ts:Date.now()}));}catch(e){}
+}
+
+// ── TOAST ─────────────────────────────────────────
+let _toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── BACKUP PANEL ──────────────────────────────────
+function openBackupPanel(){document.getElementById('bkOverlay').classList.add('open')}
+function closeBkPanel(){document.getElementById('bkOverlay').classList.remove('open')}
+function closeBkOutside(e){if(e.target===document.getElementById('bkOverlay'))closeBkPanel()}
+
+// ── EXPORT JSON ───────────────────────────────────
+function exportJSON(){
+  const data=JSON.stringify({resources,categories,todos,tracker},null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date().toISOString().slice(0,10);
+  a.href=url;a.download=`my-resources-backup-${d}.json`;a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ JSON backup downloaded!');
+}
+
+// ── IMPORT JSON ───────────────────────────────────
+function importJSON(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.resources)throw new Error('Invalid file');
+      if(!confirm(`Import ${data.resources.length} resources? This will MERGE with your current data (no data will be deleted).`))return;
+      // Merge: add only resources not already present (by id)
+      const existingIds=new Set(resources.map(r=>r.id));
+      const newRes=(data.resources||[]).filter(r=>!existingIds.has(r.id));
+      resources=[...newRes,...resources];
+      // Merge categories
+      const existingCats=new Set(categories.map(c=>c.name));
+      (data.categories||[]).forEach(c=>{
+        const name=typeof c==='string'?c:c.name;
+        if(!existingCats.has(name)) categories.push(typeof c==='string'?{name,subs:[]}:c);
+      });
+      // Merge todos & tracker
+      Object.keys(data.todos||{}).forEach(k=>{if(!todos[k])todos[k]=data.todos[k]});
+      Object.keys(data.tracker||{}).forEach(k=>{if(!tracker[k])tracker[k]=data.tracker[k]});
+      renderCatPills();renderStatusBar();renderList();renderTodos();renderTracker();
+      scheduleSave();saveLocalBackup();
+      closeBkPanel();
+      showToast(`✅ Imported ${newRes.length} new resources!`);
+    }catch(err){alert('❌ Invalid JSON file. Please use a backup exported from this app.');}
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ── EXPORT EXCEL ──────────────────────────────────
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+
+  // RESOURCES sheet
+  const resRows=resources.map(r=>({
+    ID:r.id,
+    Type:r.type||'web',
+    Title:r.title||'',
+    URL:r.url||'',
+    Category:r.cat||'General',
+    SubCategory:r.sub||'',
+    Status:r.status||'future',
+    Note:r.note||'',
+    Tags:(r.noteTags||[]).join(', '),
+    NoteColor:r.noteColor||'',
+    ExtraLinks:(r.extraLinks||[]).map(l=>`${l.label||''}::${l.url}`).join(' | '),
+    LinkedInContent:r.liContent||'',
+    DateAdded:r.ts?new Date(r.ts).toLocaleDateString('en-GB'):'',
+    Timestamp:r.ts||''
+  }));
+  const wsRes=XLSX.utils.json_to_sheet(resRows.length?resRows:[{ID:'',Type:'',Title:'',URL:'',Category:'',SubCategory:'',Status:'',Note:'',Tags:'',NoteColor:'',ExtraLinks:'',LinkedInContent:'',DateAdded:'',Timestamp:''}]);
+  wsRes['!cols']=[{wch:18},{wch:8},{wch:35},{wch:45},{wch:15},{wch:15},{wch:12},{wch:40},{wch:20},{wch:12},{wch:40},{wch:40},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,wsRes,'Resources');
+
+  // CATEGORIES sheet
+  const catRows=[];
+  categories.forEach(c=>{
+    catRows.push({Category:c.name,SubCategory:''});
+    (c.subs||[]).forEach(s=>catRows.push({Category:c.name,SubCategory:s}));
+  });
+  const wsCat=XLSX.utils.json_to_sheet(catRows.length?catRows:[{Category:'',SubCategory:''}]);
+  wsCat['!cols']=[{wch:20},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,wsCat,'Categories');
+
+  // TODOS sheet
+  const todoRows=[];
+  Object.keys(todos).sort().forEach(day=>{
+    (todos[day]||[]).forEach(t=>{todoRows.push({Date:day,Task:t.text,Done:t.done?'Yes':'No',AddedAt:t.ts?new Date(t.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'',CompletedAt:t.completedAt?new Date(t.completedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):''})});
+  });
+  const wsTodo=XLSX.utils.json_to_sheet(todoRows.length?todoRows:[{Date:'',Task:'',Done:'',AddedAt:'',CompletedAt:''}]);
+  wsTodo['!cols']=[{wch:12},{wch:40},{wch:6},{wch:10},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,wsTodo,'ToDos');
+
+  // INFO sheet
+  const wsInfo=XLSX.utils.aoa_to_sheet([
+    ['My Resources — Backup'],
+    ['Exported on', new Date().toLocaleString('en-GB')],
+    ['Total Resources', resources.length],
+    ['Total Categories', categories.length],
+    [''],
+    ['HOW TO RESTORE:'],
+    ['1. Open your app and sign in'],
+    ['2. Tap "Import / Restore" in the green backup bar'],
+    ['3. Choose "Import from Excel" and select this file'],
+    ['4. Your data will be merged back safely'],
+  ]);
+  wsInfo['!cols']=[{wch:22},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,wsInfo,'Info');
+
+  const d=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`my-resources-backup-${d}.xlsx`);
+  showToast('✅ Excel backup downloaded!');
+}
+
+// ── IMPORT EXCEL ──────────────────────────────────
+function importExcel(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets['Resources'];
+      if(!ws)throw new Error('No Resources sheet found');
+      const rows=XLSX.utils.sheet_to_json(ws);
+      if(rows.length===0){showToast('⚠️ No resources found in file');return;}
+      if(!confirm(`Import ${rows.length} resources from Excel? They will be MERGED with your current data.`))return;
+
+      const existingIds=new Set(resources.map(r=>r.id));
+      let added=0;
+      rows.forEach(row=>{
+        if(!row.Title)return;
+        const id=row.ID&&!existingIds.has(row.ID)?row.ID:uid();
+        if(existingIds.has(row.ID))return; // skip duplicates
+        const extraLinks=(row.ExtraLinks||'').split(' | ').filter(Boolean).map(s=>{const[label,...rest]=s.split('::');return{label:label||'',url:rest.join('::')||label}});
+        resources.unshift({
+          id,
+          type:row.Type||'web',
+          title:row.Title||'',
+          url:row.URL||'',
+          cat:row.Category||'General',
+          sub:row.SubCategory||'',
+          status:row.Status||'future',
+          note:row.Note||'',
+          noteTags:(row.Tags||'').split(',').map(t=>t.trim()).filter(Boolean),
+          noteColor:row.NoteColor||'',
+          extraLinks,
+          liContent:row.LinkedInContent||'',
+          ts:row.Timestamp||Date.now()
+        });
+        existingIds.add(id);added++;
+      });
+
+      // Import categories if present
+      const wsCat=wb.Sheets['Categories'];
+      if(wsCat){
+        const catRows=XLSX.utils.sheet_to_json(wsCat);
+        const existingCats=new Set(categories.map(c=>c.name));
+        catRows.forEach(row=>{
+          if(!row.Category)return;
+          if(!existingCats.has(row.Category)){categories.push({name:row.Category,subs:[]});existingCats.add(row.Category);}
+          if(row.SubCategory){const cat=categories.find(c=>c.name===row.Category);if(cat&&!cat.subs.includes(row.SubCategory))cat.subs.push(row.SubCategory);}
+        });
+      }
+
+      renderCatPills();renderStatusBar();renderList();
+      scheduleSave();saveLocalBackup();
+      closeBkPanel();
+      showToast(`✅ Imported ${added} resources from Excel!`);
+    }catch(err){alert('❌ Could not read Excel file. Make sure it was exported from this app.\n\n'+err.message);}
+    e.target.value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 init();
 </script>
+<!-- BACKUP PANEL OVERLAY -->
+<div class="bk-overlay" id="bkOverlay" onclick="closeBkOutside(event)">
+  <div class="bk-box">
+    <h2>💾 Backup & Restore</h2>
+    <p>Export your data to keep a safe copy. Import to restore from a previous backup. Your data is also auto-saved to Google Drive and your browser.</p>
+
+    <div class="bk-section">
+      <h3>⬇️ Export (Download a Backup)</h3>
+      <p>Save your data as a file on your device. Do this regularly!</p>
+      <button class="bk-full-btn" style="background:#217346;color:#fff" onclick="exportExcel();closeBkPanel()">📊 Export to Excel (.xlsx)</button>
+      <button class="bk-full-btn" style="background:#2D6A4F;color:#fff" onclick="exportJSON();closeBkPanel()">📄 Export to JSON (.json)</button>
+    </div>
+
+    <div class="bk-section">
+      <h3>⬆️ Import from Excel</h3>
+      <p>Upload an Excel file exported from this app to restore your resources.</p>
+      <div class="upload-zone" onclick="document.getElementById('xlsxImportInput').click()">
+        <p>📊 Tap to choose Excel file (.xlsx)</p>
+        <input type="file" id="xlsxImportInput" accept=".xlsx" onchange="importExcel(event)">
+      </div>
+    </div>
+
+    <div class="bk-section">
+      <h3>⬆️ Import from JSON</h3>
+      <p>Upload a JSON backup file to fully restore all your data.</p>
+      <div class="upload-zone" onclick="document.getElementById('jsonImportInput').click()">
+        <p>📄 Tap to choose JSON file (.json)</p>
+        <input type="file" id="jsonImportInput" accept=".json" onchange="importJSON(event)">
+      </div>
+    </div>
+
+    <div class="bk-section">
+      <h3>🔒 Where is my data saved?</h3>
+      <p style="margin-bottom:0">✅ <b>Google Drive</b> — synced automatically<br>✅ <b>Browser (localStorage)</b> — emergency local backup<br>✅ <b>Your device</b> — when you export Excel or JSON</p>
+    </div>
+
+    <button class="bk-close" onclick="closeBkPanel()">Close</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>
 
