@@ -214,10 +214,45 @@ body.dark .tag-chip{background:#2d1f5e;color:#a78bfa}
 .pdf-tab.active{background:var(--accent);color:#fff}
 body.dark .pdf-tab.active{color:var(--bg)}
 .upload-area{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s}
-.upload-area:hover{border-color:var(--accent)}
+.upload-area:hover,.upload-area.drag-active{border-color:var(--accent);background:var(--al)}
 .upload-area p{font-size:13px;color:var(--muted);margin-top:6px}
 .upload-area input[type=file]{display:none}
 .file-chosen{font-size:12px;color:var(--accent);margin-top:6px;font-weight:500}
+.pdf-file-list{list-style:none;margin-top:8px;max-height:140px;overflow-y:auto}
+.pdf-file-item{display:flex;align-items:center;gap:7px;padding:6px 9px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:5px;font-size:12px}
+.pdf-file-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdf-file-item button{padding:2px 7px;background:var(--dl);color:var(--danger);border:none;border-radius:5px;cursor:pointer;font-size:12px;flex-shrink:0}
+.pdf-batch-info{font-size:12px;color:var(--muted);margin-top:5px;text-align:center}
+
+/* ABBREVIATIONS */
+.abbr-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:center;justify-content:center;padding:16px}
+.abbr-overlay.open{display:flex}
+.abbr-box{background:var(--card);border-radius:18px;padding:22px 18px 28px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto}
+.abbr-box h2{font-family:'Lora',serif;font-size:18px;font-weight:600;margin-bottom:6px}
+.abbr-box>p{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.abbr-add-row{display:flex;gap:7px;margin-bottom:12px;align-items:center}
+.abbr-add-row input{flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none}
+.abbr-add-row input:focus{border-color:var(--accent)}
+.abbr-add-row .abbr-eq{font-size:16px;color:var(--muted);flex-shrink:0}
+.abbr-add-row button{padding:8px 13px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+body.dark .abbr-add-row button{color:var(--bg)}
+.abbr-list{list-style:none;margin-bottom:14px;max-height:220px;overflow-y:auto}
+.abbr-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;margin-bottom:5px}
+.abbr-short{font-size:13px;font-weight:700;color:var(--accent);min-width:64px;flex-shrink:0}
+.abbr-arrow{font-size:12px;color:var(--muted);flex-shrink:0}
+.abbr-long{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abbr-del{padding:3px 8px;background:var(--dl);color:var(--danger);border:none;border-radius:5px;cursor:pointer;font-size:12px;flex-shrink:0}
+.abbr-apply-section{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:4px}
+.abbr-apply-section h3{font-size:13px;font-weight:600;margin-bottom:8px}
+.abbr-apply-section textarea{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);outline:none;resize:none;height:90px}
+.abbr-apply-section textarea:focus{border-color:var(--accent)}
+.abbr-apply-btns{display:flex;gap:7px;margin-top:8px}
+.abbr-apply-btns button{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.abbr-btn-apply{background:var(--accent);color:#fff}
+body.dark .abbr-btn-apply{color:var(--bg)}
+.abbr-btn-copy{background:var(--al);color:var(--at)}
+.abbr-result{margin-top:8px;font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;white-space:pre-wrap;word-break:break-word;max-height:100px;overflow-y:auto;display:none}
+.abbr-close{width:100%;padding:11px;border-radius:10px;font-size:14px;font-weight:500;border:1.5px solid var(--border);cursor:pointer;font-family:'DM Sans',sans-serif;background:none;color:var(--muted);margin-top:10px}
 
 /* CAT MANAGER */
 .cat-manager{background:var(--card);border-radius:22px 22px 0 0;width:100%;padding:20px 18px 36px;max-height:88vh;overflow-y:auto}
@@ -383,6 +418,7 @@ body.dark .tcheck.done{color:var(--bg)}
       <div style="display:flex;gap:8px">
         <button onclick="openCatManager()">⚙ Categories</button>
         <button onclick="openNewCat()">+ New</button>
+        <button onclick="openAbbrPanel()">✂️ Abbr</button>
       </div>
       <select class="sort-select" id="sortSelect" onchange="renderList()">
         <option value="newest">↓ Newest</option>
@@ -463,12 +499,13 @@ body.dark .tcheck.done{color:var(--bg)}
       </div>
       <div id="pdfLinkDiv"><input type="url" id="fPdfUrl" placeholder="https://… (PDF link)"></div>
       <div id="pdfUploadDiv" class="hidden">
-        <div class="upload-area" onclick="document.getElementById('pdfFileInput').click()">
+        <div class="upload-area" id="pdfDropZone" onclick="document.getElementById('pdfFileInput').click()">
           <div style="font-size:32px">📄</div>
-          <p>Tap to choose a PDF file</p>
-          <input type="file" id="pdfFileInput" accept=".pdf" onchange="onPdfChosen(event)">
-          <div class="file-chosen hidden" id="fileChosenLabel"></div>
+          <p>Tap to choose PDF files<br><span style="font-size:11px;opacity:.7">You can select multiple files at once</span></p>
+          <input type="file" id="pdfFileInput" accept=".pdf" multiple onchange="onPdfChosen(event)">
         </div>
+        <ul class="pdf-file-list" id="pdfFileList"></ul>
+        <div class="pdf-batch-info hidden" id="pdfBatchInfo"></div>
       </div>
     </div>
     <div id="extraLinksGroup" class="fg">
@@ -563,6 +600,31 @@ body.dark .tcheck.done{color:var(--bg)}
   </div>
 </div>
 
+<!-- ABBREVIATIONS PANEL -->
+<div class="abbr-overlay" id="abbrOverlay" onclick="closeAbbrOutside(event)">
+  <div class="abbr-box">
+    <h2>✂️ Abbreviations</h2>
+    <p>Define short codes that expand to full text. Use the Apply tool to expand abbreviations in any text.</p>
+    <div class="abbr-add-row">
+      <input type="text" id="abbrShort" placeholder="Short (e.g. AI)" maxlength="20" onkeydown="if(event.key==='Enter')addAbbr()">
+      <span class="abbr-eq">→</span>
+      <input type="text" id="abbrLong" placeholder="Full form (e.g. Artificial Intelligence)" maxlength="120" onkeydown="if(event.key==='Enter')addAbbr()">
+      <button onclick="addAbbr()">+ Add</button>
+    </div>
+    <ul class="abbr-list" id="abbrList"></ul>
+    <div class="abbr-apply-section">
+      <h3>📝 Apply abbreviations to text</h3>
+      <textarea id="abbrInputText" placeholder="Paste your text here — all known abbreviations will be expanded…"></textarea>
+      <div class="abbr-apply-btns">
+        <button class="abbr-btn-apply" onclick="applyAbbreviations()">⚡ Expand Abbreviations</button>
+        <button class="abbr-btn-copy" onclick="copyAbbrResult()">📋 Copy Result</button>
+      </div>
+      <div class="abbr-result" id="abbrResult"></div>
+    </div>
+    <button class="abbr-close" onclick="closeAbbrPanel()">Close</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -581,7 +643,9 @@ let resources=[], categories=[
 let todos={}, tracker={};
 let activeCat='all', activeStatus='all', activeTodoFilter='all', activeTag='';
 let editId=null, selectedType='web', noteColor='', noteTags=[], noteChecklist=[], extraLinks=[];
-let pdfMode='link', pdfFileData=null;
+let pdfMode='link', pdfFileData=null, pdfFilesQueue=[];
+let abbreviations=[];
+const LS_ABBR='my_resources_abbr';
 let driveFileId=null, saveTimer=null;
 let currentTab='resources';
 let today=todayKey();
@@ -593,6 +657,10 @@ function loadPrefs(){
   try{
     const p=JSON.parse(localStorage.getItem(LS_PREFS)||'{}');
     if(p.dark){isDark=true;document.body.classList.add('dark');document.getElementById('darkBtn').textContent='☀️';}
+  }catch(e){}
+  try{
+    const saved=localStorage.getItem(LS_ABBR);
+    if(saved) abbreviations=JSON.parse(saved);
   }catch(e){}
 }
 function savePrefs(){
@@ -935,7 +1003,7 @@ function toggleChecklist(id,idx,done){
 
 // ── ADD/EDIT SHEET ───────────────────────────────
 function openSheet(){
-  editId=null;selectedType='web';noteColor='';noteTags=[];noteChecklist=[];extraLinks=[];pdfMode='link';pdfFileData=null;
+  editId=null;selectedType='web';noteColor='';noteTags=[];noteChecklist=[];extraLinks=[];pdfMode='link';pdfFileData=null;pdfFilesQueue=[];
   document.getElementById('sheetTitle').textContent='Add Resource';
   document.getElementById('fTitle').value='';
   document.getElementById('fUrl').value='';
@@ -943,8 +1011,9 @@ function openSheet(){
   document.getElementById('fStatus').value='future';
   document.getElementById('fLiContent').value='';
   document.getElementById('liExtractStatus').classList.add('hidden');
-  document.getElementById('fileChosenLabel').classList.add('hidden');
   document.getElementById('pdfFileInput').value='';
+  document.getElementById('pdfFileList').innerHTML='';
+  document.getElementById('pdfBatchInfo').classList.add('hidden');
   renderTypeOpts();renderCatSelect();renderNoteExtras();renderChecklistItems();renderTagChips();renderExtraLinks();
   document.getElementById('overlay').classList.add('open');
 }
@@ -978,11 +1047,57 @@ function switchPdfTab(mode){
   document.getElementById('pdfUploadDiv').style.display=mode==='upload'?'block':'none';
 }
 function onPdfChosen(e){
-  const file=e.target.files[0];if(!file)return;
-  const lbl=document.getElementById('fileChosenLabel');lbl.classList.remove('hidden');lbl.textContent='📄 '+file.name;
-  const reader=new FileReader();reader.onload=ev=>{pdfFileData=ev.target.result};reader.readAsDataURL(file);
-  if(!document.getElementById('fTitle').value) document.getElementById('fTitle').value=file.name.replace('.pdf','');
+  const files=Array.from(e.target.files);if(!files.length)return;
+  files.forEach(file=>{
+    if(!pdfFilesQueue.find(f=>f.name===file.name&&f.size===file.size)){
+      pdfFilesQueue.push(file);
+    }
+  });
+  renderPdfFileList();
+  // Auto-fill title if single file and title empty
+  if(pdfFilesQueue.length===1&&!document.getElementById('fTitle').value)
+    document.getElementById('fTitle').value=pdfFilesQueue[0].name.replace(/\.pdf$/i,'');
+  else if(pdfFilesQueue.length>1)
+    document.getElementById('fTitle').value='';
+  e.target.value='';
 }
+function renderPdfFileList(){
+  const ul=document.getElementById('pdfFileList');
+  const info=document.getElementById('pdfBatchInfo');
+  if(!pdfFilesQueue.length){ul.innerHTML='';info.classList.add('hidden');return;}
+  ul.innerHTML=pdfFilesQueue.map((f,i)=>`<li class="pdf-file-item">
+    <span>📄 ${esc(f.name)}</span>
+    <small style="color:var(--muted);flex-shrink:0">${(f.size/1024).toFixed(0)}KB</small>
+    <button onclick="removePdfFile(${i})">✕</button>
+  </li>`).join('');
+  if(pdfFilesQueue.length>1){
+    info.classList.remove('hidden');
+    info.textContent=`${pdfFilesQueue.length} PDFs selected — each will be saved as a separate resource`;
+  }else{info.classList.add('hidden');}
+}
+function removePdfFile(i){
+  pdfFilesQueue.splice(i,1);
+  renderPdfFileList();
+  if(pdfFilesQueue.length===0)document.getElementById('fTitle').value='';
+  else if(pdfFilesQueue.length===1&&!document.getElementById('fTitle').value)
+    document.getElementById('fTitle').value=pdfFilesQueue[0].name.replace(/\.pdf$/i,'');
+}
+// Drag & drop support for PDF upload zone
+document.addEventListener('DOMContentLoaded',()=>{
+  const zone=document.getElementById('pdfDropZone');
+  if(!zone)return;
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-active')});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag-active'));
+  zone.addEventListener('drop',e=>{
+    e.preventDefault();zone.classList.remove('drag-active');
+    const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf'));
+    if(!files.length){showToast('⚠️ Please drop PDF files only');return;}
+    files.forEach(file=>{if(!pdfFilesQueue.find(f=>f.name===file.name&&f.size===file.size))pdfFilesQueue.push(file)});
+    renderPdfFileList();
+    if(pdfFilesQueue.length===1&&!document.getElementById('fTitle').value)
+      document.getElementById('fTitle').value=pdfFilesQueue[0].name.replace(/\.pdf$/i,'');
+  });
+});
 function addExtraLink(){
   extraLinks.push({url:'',label:''});renderExtraLinks();
   setTimeout(()=>{const inputs=document.querySelectorAll('#extraLinksList .url-inp');if(inputs.length)inputs[inputs.length-1].focus()},50);
@@ -1033,6 +1148,28 @@ function renderSubSelect(){
 }
 async function saveResource(){
   const title=document.getElementById('fTitle').value.trim();
+  // Batch PDF upload — save one resource per file
+  if(selectedType==='pdf'&&pdfMode==='upload'&&pdfFilesQueue.length>1){
+    if(!confirm(`Save ${pdfFilesQueue.length} PDFs as separate resources?`))return;
+    const cat=document.getElementById('fCat').value;
+    const sub=document.getElementById('fSubCat').value||'';
+    const note=document.getElementById('fNote').value.trim();
+    const status=document.getElementById('fStatus').value||'future';
+    let saved=0;
+    const readAll=pdfFilesQueue.map(file=>new Promise(res=>{
+      const r=new FileReader();r.onload=ev=>res({name:file.name,data:ev.target.result});r.readAsDataURL(file);
+    }));
+    const results=await Promise.all(readAll);
+    results.forEach(({name,data})=>{
+      resources.unshift({id:uid(),ts:Date.now(),pinned:false,
+        title:name.replace(/\.pdf$/i,''),url:'',cat,sub,note,status,type:'pdf',
+        noteColor:'',noteTags:[],checklist:[],liContent:'',pdfData:data,extraLinks:[]
+      });saved++;
+    });
+    closeSheet();renderList();renderStats();renderCatPills();renderTagFilterBar();updateTabBadge();scheduleSave();
+    showToast(`✅ Saved ${saved} PDFs as resources!`);
+    return;
+  }
   if(!title){document.getElementById('fTitle').focus();return}
   let url=document.getElementById('fUrl').value.trim();
   if(selectedType==='pdf'&&pdfMode==='link') url=document.getElementById('fPdfUrl').value.trim();
@@ -1041,12 +1178,19 @@ async function saveResource(){
   const note=document.getElementById('fNote').value.trim();
   const status=document.getElementById('fStatus').value||'future';
   const liContent=document.getElementById('fLiContent').value.trim();
+  // For single PDF upload, read the file first
+  let resolvedPdfData=null;
+  if(selectedType==='pdf'&&pdfMode==='upload'&&pdfFilesQueue.length===1){
+    resolvedPdfData=await new Promise(res=>{
+      const r=new FileReader();r.onload=ev=>res(ev.target.result);r.readAsDataURL(pdfFilesQueue[0]);
+    });
+  }
   const obj={title,url,cat,sub,note,status,type:selectedType,
     noteColor:selectedType==='note'?noteColor:'',
     noteTags:selectedType==='note'?[...noteTags]:[],
     checklist:selectedType==='note'?noteChecklist.filter(x=>x.text.trim()).map(x=>({text:x.text,done:x.done})):[],
     liContent:selectedType==='li'?liContent:'',
-    pdfData:selectedType==='pdf'&&pdfMode==='upload'?pdfFileData:null,
+    pdfData:selectedType==='pdf'&&pdfMode==='upload'?resolvedPdfData:null,
     extraLinks:extraLinks.filter(l=>l.url.trim()).map(l=>({url:l.url.trim(),label:l.label.trim()}))
   };
   if(editId){
@@ -1393,6 +1537,59 @@ function importExcel(e){
     e.target.value='';
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ── ABBREVIATIONS ─────────────────────────────────
+function saveAbbr(){try{localStorage.setItem(LS_ABBR,JSON.stringify(abbreviations));}catch(e){}}
+function openAbbrPanel(){renderAbbrList();document.getElementById('abbrOverlay').classList.add('open')}
+function closeAbbrPanel(){document.getElementById('abbrOverlay').classList.remove('open')}
+function closeAbbrOutside(e){if(e.target===document.getElementById('abbrOverlay'))closeAbbrPanel()}
+function addAbbr(){
+  const s=document.getElementById('abbrShort').value.trim();
+  const l=document.getElementById('abbrLong').value.trim();
+  if(!s||!l){showToast('⚠️ Fill in both fields');return;}
+  if(abbreviations.find(a=>a.short.toLowerCase()===s.toLowerCase())){showToast('⚠️ Abbreviation already exists');return;}
+  abbreviations.push({short:s,long:l});
+  document.getElementById('abbrShort').value='';document.getElementById('abbrLong').value='';
+  saveAbbr();renderAbbrList();
+  showToast(`✅ Added: ${s} → ${l}`);
+}
+function deleteAbbr(i){
+  abbreviations.splice(i,1);saveAbbr();renderAbbrList();
+}
+function renderAbbrList(){
+  const ul=document.getElementById('abbrList');
+  if(!abbreviations.length){
+    ul.innerHTML=`<li style="text-align:center;padding:14px;color:var(--muted);font-size:13px">No abbreviations yet. Add one above!</li>`;return;
+  }
+  ul.innerHTML=abbreviations.map((a,i)=>`<li class="abbr-item">
+    <span class="abbr-short">${esc(a.short)}</span>
+    <span class="abbr-arrow">→</span>
+    <span class="abbr-long" title="${esc(a.long)}">${esc(a.long)}</span>
+    <button class="abbr-del" onclick="deleteAbbr(${i})">✕</button>
+  </li>`).join('');
+}
+function applyAbbreviations(){
+  let text=document.getElementById('abbrInputText').value;
+  if(!text.trim()){showToast('⚠️ Paste some text first');return;}
+  if(!abbreviations.length){showToast('⚠️ No abbreviations defined yet');return;}
+  // Sort by length desc so longer abbreviations are replaced first
+  const sorted=[...abbreviations].sort((a,b)=>b.short.length-a.short.length);
+  sorted.forEach(a=>{
+    const regex=new RegExp('\\b'+a.short.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','g');
+    text=text.replace(regex,a.long);
+  });
+  const resultEl=document.getElementById('abbrResult');
+  resultEl.textContent=text;
+  resultEl.style.display='block';
+  showToast('✅ Abbreviations expanded!');
+}
+function copyAbbrResult(){
+  const text=document.getElementById('abbrResult').textContent;
+  if(!text){showToast('⚠️ Nothing to copy — expand first');return;}
+  navigator.clipboard.writeText(text).then(()=>showToast('📋 Copied!')).catch(()=>{
+    const inp=document.createElement('textarea');inp.value=text;document.body.appendChild(inp);inp.select();document.execCommand('copy');document.body.removeChild(inp);showToast('📋 Copied!');
+  });
 }
 
 init();
