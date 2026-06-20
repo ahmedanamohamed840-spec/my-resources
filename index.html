@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>My Resources</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 /* ── THEME ── */
 :root{
@@ -569,7 +572,7 @@ body.dark .tcheck.done{color:var(--bg)}
 <div class="bk-overlay" id="bkOverlay" onclick="closeBkOutside(event)">
   <div class="bk-box">
     <h2>💾 Backup & Restore</h2>
-    <p>Export your data regularly. Import to restore from any backup. Data is also auto-saved to Google Drive and your browser.</p>
+    <p>Export your data regularly. Import to restore from any backup. Data is also auto-saved to your account in the cloud and your browser.</p>
     <div class="bk-section">
       <h3>⬇️ Export (Download Backup)</h3>
       <p>Save to your device — do this weekly!</p>
@@ -594,7 +597,7 @@ body.dark .tcheck.done{color:var(--bg)}
     </div>
     <div class="bk-section">
       <h3>🔒 Where is my data saved?</h3>
-      <p style="margin-bottom:0">✅ <b>Google Drive</b> — synced automatically<br>✅ <b>Browser localStorage</b> — emergency fallback<br>✅ <b>Your device</b> — when you export</p>
+      <p style="margin-bottom:0">✅ <b>Your account (cloud)</b> — synced automatically<br>✅ <b>Browser localStorage</b> — emergency fallback<br>✅ <b>Your device</b> — when you export</p>
     </div>
     <button class="bk-close" onclick="closeBkPanel()">Close</button>
   </div>
@@ -630,13 +633,22 @@ body.dark .tcheck.done{color:var(--bg)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-const CLIENT_ID='715393916818-6m0f2fok67kbnj3fp7g4mi20161kh2bs.apps.googleusercontent.com';
-const SCOPES='https://www.googleapis.com/auth/drive.appdata';
-const FILE_NAME='my-resources-data-v3.json';
+const firebaseConfig={
+  apiKey:"AIzaSyAtMINxL7YYaFwTneAFmmyMuDDQSWXuJIA",
+  authDomain:"aboafyaa-bct.firebaseapp.com",
+  projectId:"aboafyaa-bct",
+  storageBucket:"aboafyaa-bct.firebasestorage.app",
+  messagingSenderId:"600687606623",
+  appId:"1:600687606623:web:b409a7614a9d22539654ea",
+  measurementId:"G-80ZK773QVE"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth=firebase.auth();
+const db=firebase.firestore();
 const LS_BACKUP='my_resources_localbak';
 const LS_PREFS='my_resources_prefs';
 
-let tokenClient, accessToken=null;
+let currentUser=null;
 let resources=[], categories=[
   {name:'General',subs:[]},{name:'Work',subs:[]},{name:'Learning',subs:[]},{name:'Reading',subs:[]}
 ];
@@ -646,7 +658,7 @@ let editId=null, selectedType='web', noteColor='', noteTags=[], noteChecklist=[]
 let pdfMode='link', pdfFileData=null, pdfFilesQueue=[];
 let abbreviations=[];
 const LS_ABBR='my_resources_abbr';
-let driveFileId=null, saveTimer=null;
+let saveTimer=null;
 let currentTab='resources';
 let today=todayKey();
 let undoTimer=null, undoData=null;
@@ -693,28 +705,28 @@ function showToast(msg){
   _toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// ── GOOGLE AUTH ──────────────────────────────────
-function loadGIS(){return new Promise(r=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=r;document.head.appendChild(s)})}
-function loadGAPI(){return new Promise(r=>{const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';s.onload=()=>gapi.load('client',r);document.head.appendChild(s)})}
-async function init(){
+// ── FIREBASE AUTH ─────────────────────────────────
+function init(){
   loadPrefs();
-  await Promise.all([loadGIS(),loadGAPI()]);
-  await gapi.client.init({discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']});
-  tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:onToken});
-  const saved=sessionStorage.getItem('gtoken');
-  if(saved){accessToken=saved;gapi.client.setToken({access_token:saved});showApp();}
+  fbAuth.onAuthStateChanged(user=>{
+    if(user){currentUser=user;showApp();}
+  });
 }
-function signIn(){tokenClient.requestAccessToken({prompt:''})}
-function signOut(){google.accounts.oauth2.revoke(accessToken,()=>{});sessionStorage.removeItem('gtoken');location.reload()}
-function onToken(resp){if(resp.error)return;accessToken=resp.access_token;sessionStorage.setItem('gtoken',accessToken);gapi.client.setToken({access_token:accessToken});showApp()}
+function signIn(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(e=>{
+    alert('Sign-in failed: '+(e.message||e));
+  });
+}
+function signOut(){fbAuth.signOut().then(()=>location.reload())}
 
 async function showApp(){
   document.getElementById('loginScreen').classList.add('hide');
   setTimeout(()=>document.getElementById('loginScreen').style.display='none',350);
   document.getElementById('app').classList.remove('hidden');
   setSyncStatus('saving','Loading…');
-  try{const info=await gapi.client.drive.about.get({fields:'user'});document.getElementById('userEmail').textContent=info.result.user.emailAddress}catch(e){}
-  await loadFromDrive();
+  document.getElementById('userEmail').textContent=currentUser.email||'';
+  await loadFromFirestore();
   checkDayRollover();
 }
 function checkDayRollover(){
@@ -724,21 +736,22 @@ function checkDayRollover(){
   renderTodos();renderTracker();
 }
 
-// ── DRIVE ────────────────────────────────────────
+// ── FIRESTORE ────────────────────────────────────
 function saveLocalBackup(){
   try{localStorage.setItem(LS_BACKUP,JSON.stringify({resources,categories,todos,tracker,ts:Date.now()}));}catch(e){}
 }
-async function loadFromDrive(){
+function userDocRef(){
+  return db.collection('users').doc(currentUser.uid).collection('data').doc('main');
+}
+async function loadFromFirestore(){
   try{
-    const res=await gapi.client.drive.files.list({spaces:'appDataFolder',fields:'files(id,name)',q:`name='${FILE_NAME}'`});
-    const files=res.result.files;
-    if(files&&files.length>0){
-      driveFileId=files[0].id;
-      const content=await gapi.client.drive.files.get({fileId:driveFileId,alt:'media'});
-      const data=typeof content.result==='string'?JSON.parse(content.result):content.result;
-      resources=data.resources||[];
-      categories=(data.categories||[]).map(c=>typeof c==='string'?{name:c,subs:[]}:c);
-      todos=data.todos||{};tracker=data.tracker||{};
+    const doc=await userDocRef().get();
+    if(doc.exists){
+      const data=doc.data();
+      resources=data.resources?JSON.parse(data.resources):[];
+      categories=(data.categories?JSON.parse(data.categories):[]).map(c=>typeof c==='string'?{name:c,subs:[]}:c);
+      todos=data.todos?JSON.parse(data.todos):{};
+      tracker=data.tracker?JSON.parse(data.tracker):{};
     }
     setSyncStatus('ok','Synced ✓');
     saveLocalBackup();
@@ -751,7 +764,7 @@ async function loadFromDrive(){
         resources=d.resources||[];
         categories=(d.categories||[]).map(c=>typeof c==='string'?{name:c,subs:[]}:c);
         todos=d.todos||{};tracker=d.tracker||{};
-        setSyncStatus('error','Drive failed — loaded local backup');
+        setSyncStatus('error','Cloud failed — loaded local backup');
       }
     }catch(e2){}
   }
@@ -760,15 +773,14 @@ async function loadFromDrive(){
 }
 async function saveToDrive(){
   setSyncStatus('saving','Saving…');
-  const body=JSON.stringify({resources,categories,todos,tracker});
   try{
-    if(driveFileId){
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body});
-    }else{
-      const meta=await gapi.client.drive.files.create({resource:{name:FILE_NAME,parents:['appDataFolder']},fields:'id'});
-      driveFileId=meta.result.id;
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body});
-    }
+    await userDocRef().set({
+      resources:JSON.stringify(resources),
+      categories:JSON.stringify(categories),
+      todos:JSON.stringify(todos),
+      tracker:JSON.stringify(tracker),
+      updatedAt:Date.now()
+    });
     setSyncStatus('ok','Saved ✓');
     saveLocalBackup();
   }catch(e){setSyncStatus('error','Save failed')}
